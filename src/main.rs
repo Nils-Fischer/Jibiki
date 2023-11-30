@@ -1,3 +1,4 @@
+mod composite_dictionaries;
 mod innocent_dictionary;
 mod jmdict_dictionary;
 mod kana_utils;
