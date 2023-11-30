@@ -1,3 +1,4 @@
+mod build_dictionaries;
 mod composite_dictionaries;
 mod innocent_dictionary;
 mod jmdict_dictionary;
