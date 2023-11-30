@@ -32,3 +32,16 @@ where
         .collect();
     Ok(dicts)
 }
+
+pub trait Key {
+    fn key<K>(&self) -> K;
+}
+
+pub fn create_hash_map<K, V>(dicts: &Vec<V>) -> Result<HashMap<K, &V>>
+where
+    V: Key,
+    K: std::cmp::Eq + std::hash::Hash,
+{
+    let map: HashMap<K, &V> = dicts.iter().map(|dict| (dict.key(), dict)).collect();
+    Ok(map)
+}
