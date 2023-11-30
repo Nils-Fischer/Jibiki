@@ -1,4 +1,6 @@
+use crate::tag::Tag;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ParseKanjidic {

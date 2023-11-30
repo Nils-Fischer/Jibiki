@@ -193,7 +193,7 @@ pub fn kana_to_romaji(word: &str) -> String {
         .chars()
         .map(|c| {
             map.get(&c)
-                .expect(format!("Unknown character in word: {}", word).as_str())
+                .unwrap_or_else(|| panic!("Unknown character in word: {}", word))
                 .as_str()
         })
         .collect::<Vec<&str>>()
