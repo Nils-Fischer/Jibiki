@@ -63,7 +63,7 @@ pub struct ParsePitches {
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Kanjium {
-    vocabulary: String,
+    pub vocabulary: String,
     pub pitch: Pitch,
 }
 

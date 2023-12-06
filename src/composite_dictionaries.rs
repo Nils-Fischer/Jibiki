@@ -20,7 +20,7 @@ pub struct Word {
 }
 
 impl Word {
-    pub fn from(jmdict: &Jmdict, innocent: Option<&Innocent>, kanjium: Option<&Kanjium>) -> Word {
+    pub fn from(jmdict: Jmdict, innocent: Option<&Innocent>, kanjium: Option<&Kanjium>) -> Word {
         Word {
             vocabulary: jmdict.vocabulary.clone(),
             reading: jmdict.reading.clone(),
@@ -44,7 +44,7 @@ pub struct Name {
 }
 
 impl Name {
-    pub fn from(jmnedict: &Jmdict) -> Name {
+    pub fn from(jmnedict: Jmdict) -> Name {
         Name {
             name: jmnedict.vocabulary.clone(),
             reading: jmnedict.reading.clone(),
@@ -69,7 +69,7 @@ pub struct Kanji {
 }
 
 impl Kanji {
-    pub fn from(kanjidic: &Kanjidic, innocent: Option<&Innocent>, krad: Option<&Krad>) -> Kanji {
+    pub fn from(kanjidic: Kanjidic, innocent: Option<&Innocent>, krad: Option<&Krad>) -> Kanji {
         Kanji {
             kanji: kanjidic.kanji.clone(),
             kun_yomi: kanjidic.kun_yomi.clone(),
@@ -92,7 +92,7 @@ pub struct Radical {
 }
 
 impl Radical {
-    pub fn from(radk: &Radk) -> Radical {
+    pub fn from(radk: Radk) -> Radical {
         Radical {
             radical: radk.radical.clone(),
             strokes: radk.strokes,

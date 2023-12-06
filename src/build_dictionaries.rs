@@ -1,4 +1,11 @@
-use crate::tag::Tag;
+use crate::{
+    composite_dictionaries::{Kanji, Name, Radical, Word},
+    innocent_dictionary::Innocent,
+    jmdict_dictionary::Jmdict,
+    kanji_dictionaries::{Kanjidic, Kanjium},
+    radical_dictionaries::{Krad, Radk},
+    tag::Tag,
+};
 use anyhow::Result;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -37,15 +44,70 @@ where
     Ok(dicts)
 }
 
-pub trait Key<K> {
-    fn key(&self) -> K;
+fn assemble_composite_dictionaries(
+    jmdicts: Vec<Jmdict>,
+    jmnedicts: Vec<Jmdict>,
+    kanjium: Vec<Kanjium>,
+    kanjidic: Vec<Kanjidic>,
+    innocent: Vec<Innocent>,
+    krad: Vec<Krad>,
+    radk: Vec<Radk>,
+) -> (Vec<Kanji>, Vec<Word>, Vec<Name>, Vec<Radical>) {
+    let innocent_map: HashMap<String, Innocent> = innocent
+        .into_iter()
+        .map(|entry| (entry.vocabulary.clone(), entry))
+        .collect();
+    let krad_map: HashMap<String, Krad> = krad
+        .into_iter()
+        .map(|entry| (entry.kanji.clone(), entry))
+        .collect();
+    let kanjium_map: HashMap<String, Kanjium> = kanjium
+        .into_iter()
+        .map(|entry| (entry.vocabulary.clone(), entry))
+        .collect();
+    let kanji_dicts: Vec<Kanji> = assemble_kanji_dicts(kanjidic, &innocent_map, &krad_map);
+    let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_map, &kanjium_map);
+    let name_dicts: Vec<Name> = assemble_name_dicts(jmnedicts);
+    let radical_dicts: Vec<Radical> = assemble_radical_dicts(radk);
+    (kanji_dicts, word_dicts, name_dicts, radical_dicts)
 }
 
-pub fn create_hash_map<K, V>(dicts: &[V]) -> Result<HashMap<K, &V>>
-where
-    V: Key<K>,
-    K: std::cmp::Eq + std::hash::Hash,
-{
-    let map: HashMap<K, &V> = dicts.iter().map(|dict| (dict.key(), dict)).collect();
-    Ok(map)
+fn assemble_word_dicts(
+    jmdicts: Vec<Jmdict>,
+    innocent_map: &HashMap<String, Innocent>,
+    kanjium_map: &HashMap<String, Kanjium>,
+) -> Vec<Word> {
+    jmdicts
+        .into_iter()
+        .map(|entry| {
+            let innocent_value = innocent_map.get(entry.vocabulary.as_str());
+            let kanjium_value = kanjium_map.get(entry.vocabulary.as_str());
+            Word::from(entry, innocent_value, kanjium_value)
+        })
+        .collect()
+}
+
+fn assemble_name_dicts(jmnedicts: Vec<Jmdict>) -> Vec<Name> {
+    jmnedicts.into_iter().map(Name::from).collect()
+}
+
+fn assemble_kanji_dicts(
+    kanjidics: Vec<Kanjidic>,
+    innocent_map: &HashMap<String, Innocent>,
+    krad_map: &HashMap<String, Krad>,
+) -> Vec<Kanji> {
+    /*
+     */
+    kanjidics
+        .into_iter()
+        .map(|entry| {
+            let innocent_value = innocent_map.get(entry.kanji.as_str());
+            let krad_value = krad_map.get(entry.kanji.as_str());
+            Kanji::from(entry, innocent_value, krad_value)
+        })
+        .collect()
+}
+
+fn assemble_radical_dicts(radk: Vec<Radk>) -> Vec<Radical> {
+    radk.into_iter().map(Radical::from).collect()
 }

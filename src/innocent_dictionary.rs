@@ -11,7 +11,7 @@ pub struct ParseInnocent {
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Innocent {
-    vocabulary: String,
+    pub vocabulary: String,
     pub frequency: u32,
 }
 
