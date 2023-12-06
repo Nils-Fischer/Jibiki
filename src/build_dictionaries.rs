@@ -11,13 +11,10 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File};
 
-pub const JMDICT: &str = "resources/jmdict.bin";
-pub const JMNEDICT: &str = "resources/jmnedict.bin";
-pub const KANJIDIC: &str = "resources/kanjidic.bin";
-pub const KANJIUM: &str = "resources/kanjium.bin";
-pub const INNOCENT: &str = "resources/innocent.bin";
-pub const KRAD: &str = "resources/krad.bin";
-pub const RADK: &str = "resources/radk.bin";
+pub const WORDS: &str = "target/words.bin";
+pub const NAMES: &str = "target/names.bin";
+pub const KANJIS: &str = "target/kanjis.bin";
+pub const RADICALS: &str = "target/radicals.bin";
 
 pub trait FromParsed<P> {
     fn from_parsed(parsed: P, tags: Option<&HashMap<&str, Tag>>) -> Self;
