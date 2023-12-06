@@ -12,10 +12,14 @@ pub const INNOCENT: &str = "resources/innocent.bin";
 pub const KRAD: &str = "resources/krad.bin";
 pub const RADK: &str = "resources/radk.bin";
 
-pub fn load_json_dicts<P, D>(paths: Vec<&str>, tags: Option<&HashMap<&str, &Tag>>) -> Result<Vec<D>>
+pub trait FromParsed<P> {
+    fn from_parsed(parsed: P, tags: Option<&HashMap<&str, Tag>>) -> Self;
+}
+
+pub fn load_json_dicts<P, D>(paths: Vec<&str>, tags: Option<&HashMap<&str, Tag>>) -> Result<Vec<D>>
 where
     P: for<'a> Deserialize<'a> + Send + Serialize,
-    D: Send + for<'b> From<&'b P>,
+    D: Send + for<'b> FromParsed<&'b P>,
 {
     let dicts: Vec<D> = paths
         .into_par_iter()
@@ -26,20 +30,20 @@ where
                 .unwrap_or_else(|e| panic!("Couldn't parse json file: {}, reason: {}", path, e));
             parse_results
                 .into_iter()
-                .map(|parsed| D::from(&parsed))
+                .map(|parsed| D::from_parsed(&parsed, tags))
                 .collect::<Vec<D>>()
         })
         .collect();
     Ok(dicts)
 }
 
-pub trait Key {
-    fn key<K>(&self) -> K;
+pub trait Key<K> {
+    fn key(&self) -> K;
 }
 
-pub fn create_hash_map<K, V>(dicts: &Vec<V>) -> Result<HashMap<K, &V>>
+pub fn create_hash_map<K, V>(dicts: &[V]) -> Result<HashMap<K, &V>>
 where
-    V: Key,
+    V: Key<K>,
     K: std::cmp::Eq + std::hash::Hash,
 {
     let map: HashMap<K, &V> = dicts.iter().map(|dict| (dict.key(), dict)).collect();
