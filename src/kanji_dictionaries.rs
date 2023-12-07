@@ -1,4 +1,7 @@
-use crate::{build_dictionaries::FromParsed, composite_dictionaries::Kanji, tag::Tag};
+use crate::{
+    build_dictionaries::{FromParsed, Key},
+    tag::Tag,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -23,7 +26,7 @@ pub struct Kanjidic {
 }
 
 impl FromParsed<ParseKanjidic> for Kanjidic {
-    fn from_parsed(parsed: ParseKanjidic, tags: Option<&HashMap<&str, Tag>>) -> Self {
+    fn from_parsed(parsed: ParseKanjidic, tags: Option<&HashMap<String, Tag>>) -> Self {
         Kanjidic {
             kanji: parsed.kanji,
             kun_yomi: parsed.kun_yomi,
@@ -67,8 +70,14 @@ pub struct Kanjium {
     pub pitch: Pitch,
 }
 
+impl Key<String> for Kanjium {
+    fn key(&self) -> String {
+        self.vocabulary.clone()
+    }
+}
+
 impl FromParsed<ParseKanjium> for Kanjium {
-    fn from_parsed(parsed: ParseKanjium, tags: Option<&HashMap<&str, Tag>>) -> Self {
+    fn from_parsed(parsed: ParseKanjium, tags: Option<&HashMap<String, Tag>>) -> Self {
         Kanjium {
             vocabulary: parsed.vocabulary,
             pitch: Pitch::from_parsed(parsed.pitch, tags),
@@ -78,12 +87,12 @@ impl FromParsed<ParseKanjium> for Kanjium {
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Pitch {
-    reading: String,
+    pub reading: String,
     pub pitches: Vec<Pitches>,
 }
 
 impl FromParsed<ParsePitch> for Pitch {
-    fn from_parsed(parsed: ParsePitch, tags: Option<&HashMap<&str, Tag>>) -> Self {
+    fn from_parsed(parsed: ParsePitch, tags: Option<&HashMap<String, Tag>>) -> Self {
         Pitch {
             reading: parsed.reading,
             pitches: parsed
@@ -102,7 +111,7 @@ pub struct Pitches {
 }
 
 impl FromParsed<ParsePitches> for Pitches {
-    fn from_parsed(parsed: ParsePitches, tags: Option<&HashMap<&str, Tag>>) -> Self {
+    fn from_parsed(parsed: ParsePitches, tags: Option<&HashMap<String, Tag>>) -> Self {
         Pitches {
             position: parsed.position,
             tags: {

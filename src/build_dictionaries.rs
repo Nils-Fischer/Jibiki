@@ -1,5 +1,6 @@
 use crate::{
     composite_dictionaries::{Kanji, Name, Radical, Word},
+    dict_paths::*,
     innocent_dictionary::Innocent,
     jmdict_dictionary::Jmdict,
     kanji_dictionaries::{Kanjidic, Kanjium},
@@ -11,59 +12,89 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File};
 
-pub const WORDS: &str = "target/words.bin";
-pub const NAMES: &str = "target/names.bin";
-pub const KANJIS: &str = "target/kanjis.bin";
-pub const RADICALS: &str = "target/radicals.bin";
-
 pub trait FromParsed<P> {
-    fn from_parsed(parsed: P, tags: Option<&HashMap<&str, Tag>>) -> Self;
+    fn from_parsed(parsed: P, tags: Option<&HashMap<String, Tag>>) -> Self;
 }
 
-pub fn load_json_dicts<P, D>(paths: Vec<&str>, tags: Option<&HashMap<&str, Tag>>) -> Result<Vec<D>>
+fn load_json_dicts<P, D>(paths: Vec<String>, tags: Option<HashMap<String, Tag>>) -> Result<Vec<D>>
 where
     P: for<'a> Deserialize<'a> + Send + Serialize,
-    D: Send + for<'b> FromParsed<&'b P>,
+    D: Send + FromParsed<P>,
 {
     let dicts: Vec<D> = paths
         .into_par_iter()
         .flat_map(|path| {
-            let file: File = File::open(path)
+            let file: File = File::open(&path)
                 .unwrap_or_else(|e| panic!("Couldn't open file: {}, reason: {}", path, e));
             let parse_results: Vec<P> = serde_json::from_reader(file)
                 .unwrap_or_else(|e| panic!("Couldn't parse json file: {}, reason: {}", path, e));
             parse_results
                 .into_iter()
-                .map(|parsed| D::from_parsed(&parsed, tags))
+                .map(|parsed| D::from_parsed(parsed, tags.as_ref()))
                 .collect::<Vec<D>>()
         })
         .collect();
     Ok(dicts)
 }
 
-fn assemble_composite_dictionaries(
+pub trait Key<K> {
+    fn key(&self) -> K;
+}
+
+fn dicts_to_hashmap<K, D>(dicts: Vec<D>) -> HashMap<K, D>
+where
+    D: Key<K>,
+    K: std::hash::Hash + Eq,
+{
+    dicts
+        .into_iter()
+        .map(|entry| (entry.key(), entry))
+        .collect()
+}
+
+pub fn build_composite_dicts() -> Result<()> {
+    let jmdict_tags: HashMap<String, Tag> =
+        dicts_to_hashmap(load_json_dicts(jmdict_tag_paths(), None)?);
+    let jmnedict_tags: HashMap<String, Tag> =
+        dicts_to_hashmap(load_json_dicts(jmnedict_tag_paths(), None)?);
+    let kanjidic_tags: HashMap<String, Tag> =
+        dicts_to_hashmap(load_json_dicts(kanjidic_tag_paths(), None)?);
+    let kanjium_tags: HashMap<String, Tag> =
+        dicts_to_hashmap(load_json_dicts(kanjidic_tag_paths(), None)?);
+    let jmdicts: Vec<Jmdict> = load_json_dicts(jmdict_dict_paths(), Some(jmdict_tags))?;
+    let jmnedicts: Vec<Jmdict> = load_json_dicts(jmnedict_dict_paths(), Some(jmnedict_tags))?;
+    let kanjium: Vec<Kanjium> = load_json_dicts(kanjium_dict_paths(), Some(kanjium_tags))?;
+    let kanjidic: Vec<Kanjidic> = load_json_dicts(kanjidic_dict_paths(), Some(kanjidic_tags))?;
+    let innocent_kanji: Vec<Innocent> = load_json_dicts(innocent_kanji_dict_paths(), None)?;
+    let innocent_vocab: Vec<Innocent> = load_json_dicts(innocent_vocab_dict_paths(), None)?;
+    let krad: Vec<Krad> = load_json_dicts(krad_dict_paths(), None)?;
+    let radk: Vec<Radk> = load_json_dicts(radk_dict_paths(), None)?;
+
+    Ok(())
+}
+
+fn export_dict_as<D: Serialize>(dicts: Vec<D>, destination: &str) -> Result<()> {
+    let encoded: Vec<u8> = bincode::serialize(&dicts)?;
+    std::fs::write(destination, &encoded)?;
+    Ok(())
+}
+
+fn assemble_composite_dicts(
     jmdicts: Vec<Jmdict>,
     jmnedicts: Vec<Jmdict>,
     kanjium: Vec<Kanjium>,
     kanjidic: Vec<Kanjidic>,
-    innocent: Vec<Innocent>,
+    innocent_kanji: Vec<Innocent>,
+    innocent_vocab: Vec<Innocent>,
     krad: Vec<Krad>,
     radk: Vec<Radk>,
 ) -> (Vec<Kanji>, Vec<Word>, Vec<Name>, Vec<Radical>) {
-    let innocent_map: HashMap<String, Innocent> = innocent
-        .into_iter()
-        .map(|entry| (entry.vocabulary.clone(), entry))
-        .collect();
-    let krad_map: HashMap<String, Krad> = krad
-        .into_iter()
-        .map(|entry| (entry.kanji.clone(), entry))
-        .collect();
-    let kanjium_map: HashMap<String, Kanjium> = kanjium
-        .into_iter()
-        .map(|entry| (entry.vocabulary.clone(), entry))
-        .collect();
-    let kanji_dicts: Vec<Kanji> = assemble_kanji_dicts(kanjidic, &innocent_map, &krad_map);
-    let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_map, &kanjium_map);
+    let innocent_vocab_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_vocab);
+    let innocent_kanji_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_kanji);
+    let krad_map: HashMap<String, Krad> = dicts_to_hashmap(krad);
+    let kanjium_map: HashMap<String, Kanjium> = dicts_to_hashmap(kanjium);
+    let kanji_dicts: Vec<Kanji> = assemble_kanji_dicts(kanjidic, &innocent_kanji_map, &krad_map);
+    let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_vocab_map, &kanjium_map);
     let name_dicts: Vec<Name> = assemble_name_dicts(jmnedicts);
     let radical_dicts: Vec<Radical> = assemble_radical_dicts(radk);
     (kanji_dicts, word_dicts, name_dicts, radical_dicts)

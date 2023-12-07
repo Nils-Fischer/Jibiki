@@ -23,7 +23,7 @@ pub struct Jmdict {
 }
 
 impl FromParsed<ParseJmdict> for Jmdict {
-    fn from_parsed(parsed: ParseJmdict, tags: Option<&HashMap<&str, Tag>>) -> Self {
+    fn from_parsed(parsed: ParseJmdict, tags: Option<&HashMap<String, Tag>>) -> Self {
         Jmdict {
             vocabulary: parsed.vocabulary,
             reading: parsed.reading,

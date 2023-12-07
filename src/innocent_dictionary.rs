@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use crate::build_dictionaries::FromParsed;
+use crate::build_dictionaries::Key;
 use crate::tag::Tag;
 use serde::{Deserialize, Serialize};
 
@@ -15,11 +18,14 @@ pub struct Innocent {
     pub frequency: u32,
 }
 
+impl Key<String> for Innocent {
+    fn key(&self) -> String {
+        self.vocabulary.clone()
+    }
+}
+
 impl FromParsed<ParseInnocent> for Innocent {
-    fn from_parsed(
-        parsed: ParseInnocent,
-        _tags: Option<&std::collections::HashMap<&str, Tag>>,
-    ) -> Self {
+    fn from_parsed(parsed: ParseInnocent, _tags: Option<&HashMap<String, Tag>>) -> Self {
         Innocent {
             vocabulary: parsed.vocabulary,
             frequency: parsed.frequency,
