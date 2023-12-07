@@ -1,3 +1,5 @@
+use build_dictionaries::build_composite_dicts;
+
 mod build_dictionaries;
 mod composite_dictionaries;
 mod dict_paths;
@@ -9,5 +11,5 @@ mod radical_dictionaries;
 mod tag;
 
 fn main() {
-    println!("Hello, world!");
+    build_composite_dicts();
 }

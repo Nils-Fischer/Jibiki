@@ -55,7 +55,6 @@ pub fn radk_dict_paths() -> Vec<String> {
     vec!["resources/radicals/radkfilex.json".to_string()]
 }
 
-pub const WORDS_EXPORT_PATH: &str = "target/words.bin";
-pub const NAMES_EXPORT_PATH: &str = "target/names.bin";
-pub const KANJIS_EXPORT_PATH: &str = "target/kanjis.bin";
-pub const RADICALS_EXPORT_PATH: &str = "target/radicals.bin";
+pub trait ExportPath {
+    fn export_path(&self) -> String;
+}

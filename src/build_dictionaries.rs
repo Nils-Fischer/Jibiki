@@ -1,5 +1,5 @@
 use crate::{
-    composite_dictionaries::{Kanji, Name, Radical, Word},
+    composite_dictionaries::{CompositeDicts, Kanji, Name, Radical, Word},
     dict_paths::*,
     innocent_dictionary::Innocent,
     jmdict_dictionary::Jmdict,
@@ -69,13 +69,25 @@ pub fn build_composite_dicts() -> Result<()> {
     let innocent_vocab: Vec<Innocent> = load_json_dicts(innocent_vocab_dict_paths(), None)?;
     let krad: Vec<Krad> = load_json_dicts(krad_dict_paths(), None)?;
     let radk: Vec<Radk> = load_json_dicts(radk_dict_paths(), None)?;
-
+    let composite_dicts: Vec<CompositeDicts> = assemble_composite_dicts(
+        jmdicts,
+        jmnedicts,
+        kanjium,
+        kanjidic,
+        innocent_kanji,
+        innocent_vocab,
+        krad,
+        radk,
+    );
+    for dicts in composite_dicts.iter() {
+        dicts.export_as_bin()?;
+    }
     Ok(())
 }
 
-fn export_dict_as<D: Serialize>(dicts: Vec<D>, destination: &str) -> Result<()> {
+pub fn export_dicts_as_bin<D: Serialize + ExportPath>(dicts: &Vec<D>) -> Result<()> {
     let encoded: Vec<u8> = bincode::serialize(&dicts)?;
-    std::fs::write(destination, &encoded)?;
+    std::fs::write(dicts[0].export_path(), encoded)?;
     Ok(())
 }
 
@@ -88,7 +100,7 @@ fn assemble_composite_dicts(
     innocent_vocab: Vec<Innocent>,
     krad: Vec<Krad>,
     radk: Vec<Radk>,
-) -> (Vec<Kanji>, Vec<Word>, Vec<Name>, Vec<Radical>) {
+) -> Vec<CompositeDicts> {
     let innocent_vocab_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_vocab);
     let innocent_kanji_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_kanji);
     let krad_map: HashMap<String, Krad> = dicts_to_hashmap(krad);
@@ -97,7 +109,12 @@ fn assemble_composite_dicts(
     let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_vocab_map, &kanjium_map);
     let name_dicts: Vec<Name> = assemble_name_dicts(jmnedicts);
     let radical_dicts: Vec<Radical> = assemble_radical_dicts(radk);
-    (kanji_dicts, word_dicts, name_dicts, radical_dicts)
+    vec![
+        CompositeDicts::Kanjis(kanji_dicts),
+        CompositeDicts::Words(word_dicts),
+        CompositeDicts::Names(name_dicts),
+        CompositeDicts::Radicals(radical_dicts),
+    ]
 }
 
 fn assemble_word_dicts(

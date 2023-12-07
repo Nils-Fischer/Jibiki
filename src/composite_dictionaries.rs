@@ -1,14 +1,17 @@
 use crate::{
+    build_dictionaries::export_dicts_as_bin,
+    dict_paths::ExportPath,
     innocent_dictionary::Innocent,
     jmdict_dictionary::Jmdict,
     kanji_dictionaries::{Kanjidic, Kanjium, Pitches},
     radical_dictionaries::{Krad, Radk},
     tag::Tag,
 };
+use anyhow::Result;
+use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(Debug)]
-#[allow(dead_code)]
+#[derive(Debug, Serialize)]
 pub struct Word {
     vocabulary: String,
     reading: String,
@@ -33,8 +36,13 @@ impl Word {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
+impl ExportPath for Word {
+    fn export_path(&self) -> String {
+        "target/words.bin".to_string()
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct Name {
     name: String,
     reading: String,
@@ -55,8 +63,13 @@ impl Name {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
+impl ExportPath for Name {
+    fn export_path(&self) -> String {
+        "target/names.bin".to_string()
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct Kanji {
     kanji: String,
     kun_yomi: String,
@@ -83,8 +96,13 @@ impl Kanji {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
+impl ExportPath for Kanji {
+    fn export_path(&self) -> String {
+        "target/kanjis.bin".to_string()
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct Radical {
     radical: String,
     strokes: u8,
@@ -97,6 +115,30 @@ impl Radical {
             radical: radk.radical.clone(),
             strokes: radk.strokes,
             kanji: radk.kanji.chars().collect(),
+        }
+    }
+}
+
+impl ExportPath for Radical {
+    fn export_path(&self) -> String {
+        "target/radicals.bin".to_string()
+    }
+}
+
+pub enum CompositeDicts {
+    Words(Vec<Word>),
+    Names(Vec<Name>),
+    Kanjis(Vec<Kanji>),
+    Radicals(Vec<Radical>),
+}
+
+impl CompositeDicts {
+    pub fn export_as_bin(&self) -> Result<()> {
+        match self {
+            CompositeDicts::Kanjis(kanjis) => export_dicts_as_bin(kanjis),
+            CompositeDicts::Words(words) => export_dicts_as_bin(words),
+            CompositeDicts::Names(names) => export_dicts_as_bin(names),
+            CompositeDicts::Radicals(radicals) => export_dicts_as_bin(radicals),
         }
     }
 }
