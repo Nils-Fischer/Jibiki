@@ -141,4 +141,13 @@ impl CompositeDicts {
             CompositeDicts::Radicals(radicals) => export_dicts_as_bin(radicals),
         }
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            CompositeDicts::Kanjis(_) => "Kanjis",
+            CompositeDicts::Words(_) => "Words",
+            CompositeDicts::Names(_) => "Names",
+            CompositeDicts::Radicals(_) => "Radicals",
+        }
+    }
 }

@@ -41,7 +41,7 @@ pub trait Key<K> {
     fn key(&self) -> K;
 }
 
-fn dicts_to_hashmap<K, D>(dicts: Vec<D>) -> HashMap<K, D>
+pub fn dicts_to_hashmap<K, D>(dicts: Vec<D>) -> HashMap<K, D>
 where
     D: Key<K>,
     K: std::hash::Hash + Eq,
@@ -60,7 +60,7 @@ pub fn build_composite_dicts() -> Result<()> {
     let kanjidic_tags: HashMap<String, Tag> =
         dicts_to_hashmap(load_json_dicts(kanjidic_tag_paths(), None)?);
     let kanjium_tags: HashMap<String, Tag> =
-        dicts_to_hashmap(load_json_dicts(kanjidic_tag_paths(), None)?);
+        dicts_to_hashmap(load_json_dicts(kanjium_tag_paths(), None)?);
     let jmdicts: Vec<Jmdict> = load_json_dicts(jmdict_dict_paths(), Some(jmdict_tags))?;
     let jmnedicts: Vec<Jmdict> = load_json_dicts(jmnedict_dict_paths(), Some(jmnedict_tags))?;
     let kanjium: Vec<Kanjium> = load_json_dicts(kanjium_dict_paths(), Some(kanjium_tags))?;
@@ -80,7 +80,10 @@ pub fn build_composite_dicts() -> Result<()> {
         radk,
     );
     for dicts in composite_dicts.iter() {
-        dicts.export_as_bin()?;
+        match dicts.export_as_bin() {
+            Ok(_) => println!("Succesfully exported {}!", dicts.name()),
+            Err(e) => panic!("Failed to export {}, reason: {}", dicts.name(), e),
+        }
     }
     Ok(())
 }
