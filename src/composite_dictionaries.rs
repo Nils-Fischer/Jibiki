@@ -1,11 +1,5 @@
 use crate::{
-    build_dictionaries::export_dicts_as_bin,
-    dict_paths::ExportPath,
-    innocent_dictionary::Innocent,
-    jmdict_dictionary::Jmdict,
-    kanji_dictionaries::{Kanjidic, Kanjium, Pitches},
-    radical_dictionaries::{Krad, Radk},
-    tag::Tag,
+    basic_dictionaries::*, build_dictionaries::export_dicts_as_bin, dict_paths::ExportPath,
 };
 use anyhow::Result;
 use serde::Serialize;

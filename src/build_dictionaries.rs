@@ -1,11 +1,7 @@
 use crate::{
+    basic_dictionaries::*,
     composite_dictionaries::{CompositeDicts, Kanji, Name, Radical, Word},
     dict_paths::*,
-    innocent_dictionary::Innocent,
-    jmdict_dictionary::Jmdict,
-    kanji_dictionaries::{Kanjidic, Kanjium},
-    radical_dictionaries::{Krad, Radk},
-    tag::Tag,
 };
 use anyhow::Result;
 use rayon::prelude::*;
