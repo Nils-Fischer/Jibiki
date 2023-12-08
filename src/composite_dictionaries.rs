@@ -1,11 +1,15 @@
 use crate::{
-    basic_dictionaries::*, build_dictionaries::export_dicts_as_bin, dict_paths::ExportPath,
+    basic_dictionaries::*,
+    build_dictionaries::export_dicts_as_bin,
+    dict_paths::{
+        ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
+    },
 };
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
     vocabulary: String,
     reading: String,
@@ -32,11 +36,11 @@ impl Word {
 
 impl ExportPath for Word {
     fn export_path(&self) -> String {
-        "target/words.bin".to_string()
+        WORDS_EXPORT_PATH.to_string()
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Name {
     name: String,
     reading: String,
@@ -59,11 +63,11 @@ impl Name {
 
 impl ExportPath for Name {
     fn export_path(&self) -> String {
-        "target/names.bin".to_string()
+        NAMES_EXPORT_PATH.to_string()
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Kanji {
     kanji: String,
     kun_yomi: String,
@@ -92,11 +96,11 @@ impl Kanji {
 
 impl ExportPath for Kanji {
     fn export_path(&self) -> String {
-        "target/kanjis.bin".to_string()
+        KANJIS_EXPORT_PATH.to_string()
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Radical {
     radical: String,
     strokes: u8,
@@ -115,7 +119,7 @@ impl Radical {
 
 impl ExportPath for Radical {
     fn export_path(&self) -> String {
-        "target/radicals.bin".to_string()
+        RADICALS_EXPORT_PATH.to_string()
     }
 }
 
