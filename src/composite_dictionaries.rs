@@ -1,6 +1,6 @@
 use crate::{
     basic_dictionaries::*,
-    build_dictionaries::export_dicts_as_bin,
+    build_dictionaries::{export_dicts_as_bin, Key},
     dict_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
@@ -18,6 +18,12 @@ pub struct Word {
     id: u32,
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,
+}
+
+impl Key<u32> for Word {
+    fn key(&self) -> u32 {
+        self.id
+    }
 }
 
 impl Word {
@@ -49,6 +55,12 @@ pub struct Name {
     id: u32,
 }
 
+impl Key<u32> for Name {
+    fn key(&self) -> u32 {
+        self.id
+    }
+}
+
 impl Name {
     pub fn from(jmnedict: Jmdict) -> Name {
         Name {
@@ -72,11 +84,15 @@ pub struct Kanji {
     kanji: String,
     kun_yomi: String,
     on_yomi: String,
-    tags: HashMap<String, Tag>,
     meaning: Vec<String>,
-    attributes: HashMap<String, String>,
+    strokes: u8,
+    id: u32,
     frequency: Option<u32>,
+    jlpt: Option<u8>,
+    grade: Option<u8>,
     radicals: Option<Vec<String>>,
+    tags: HashMap<String, Tag>,
+    pub attributes: HashMap<String, String>,
 }
 
 impl Kanji {
@@ -87,10 +103,38 @@ impl Kanji {
             on_yomi: kanjidic.on_yomi.clone(),
             tags: kanjidic.tags.clone(),
             meaning: kanjidic.meanings.clone(),
-            attributes: kanjidic.attributes.clone(),
             frequency: innocent.map(|i| i.frequency),
             radicals: krad.map(|k| k.radicals.clone()),
+            strokes: kanjidic
+                .attributes
+                .get("strokes")
+                .and_then(|num| num.parse().ok())
+                .unwrap(),
+            id: kanjidic
+                .attributes
+                .get("ucs")
+                .and_then(|ucs| u32::from_str_radix(ucs, 16).ok())
+                .unwrap(),
+            jlpt: kanjidic
+                .attributes
+                .get("jlpt")
+                .and_then(|level| level.parse().ok()),
+            grade: kanjidic
+                .attributes
+                .get("grade")
+                .and_then(|num| num.parse().ok()),
+            attributes: kanjidic
+                .attributes
+                .clone()
+                .extract_if(|key, _| !["strokes", "ucs", "jlpt", "grade"].contains(&key.as_str()))
+                .collect(),
         }
+    }
+}
+
+impl Key<u32> for Kanji {
+    fn key(&self) -> u32 {
+        self.id
     }
 }
 
@@ -114,6 +158,12 @@ impl Radical {
             strokes: radk.strokes,
             kanji: radk.kanji.chars().collect(),
         }
+    }
+}
+
+impl Key<String> for Radical {
+    fn key(&self) -> String {
+        self.radical.clone()
     }
 }
 

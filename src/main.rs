@@ -1,9 +1,13 @@
+#![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::build_composite_dicts;
+use build_dictionaries::{build_composite_dicts, dicts_to_hashmap};
 use composite_dictionaries::*;
 use dict_paths::{KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH};
-use std::io::{self, BufRead};
+use std::{
+    collections::HashMap,
+    io::{self, BufRead, Write},
+};
 use structopt::StructOpt;
 
 mod basic_dictionaries;
@@ -29,6 +33,7 @@ struct Opt {
 fn read_input() -> Result<Vec<String>> {
     print!("Enter query: ");
 
+    io::stdout().flush()?;
     let stdin = io::stdin();
     let inputs: Vec<String> = stdin
         .lock()
@@ -54,10 +59,15 @@ fn main() -> Result<()> {
         }
     }
 
-    let words: Vec<Word> = load_vec_from_bin(&WORDS_EXPORT_PATH)?;
-    let kanjis: Vec<Kanji> = load_vec_from_bin(&KANJIS_EXPORT_PATH)?;
-    let names: Vec<Name> = load_vec_from_bin(&NAMES_EXPORT_PATH)?;
-    let radicals: Vec<Radical> = load_vec_from_bin(&RADICALS_EXPORT_PATH)?;
+    let words: Vec<Word> = load_vec_from_bin(WORDS_EXPORT_PATH)?;
+    let kanjis: Vec<Kanji> = load_vec_from_bin(KANJIS_EXPORT_PATH)?;
+    let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
+    let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
+
+    let word_map: HashMap<u32, Word> = dicts_to_hashmap(words);
+    let kanji_map: HashMap<u32, Kanji> = dicts_to_hashmap(kanjis);
+    let name_map: HashMap<u32, Name> = dicts_to_hashmap(names);
+    let radical_map: HashMap<String, Radical> = dicts_to_hashmap(radicals);
 
     Ok(())
 }
