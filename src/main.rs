@@ -1,7 +1,7 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::{build_composite_dicts, dicts_to_hashmap};
+use build_dictionaries::{build_composite_dicts, hashmap_from_dicts, hashmap_of_dicts};
 use composite_dictionaries::*;
 use dict_paths::{KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH};
 use std::{
@@ -16,6 +16,7 @@ mod composite_dictionaries;
 mod dict_paths;
 mod kana_utils;
 mod load_dictionaries;
+mod query;
 
 #[derive(StructOpt)]
 #[structopt(
@@ -64,10 +65,10 @@ fn main() -> Result<()> {
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
 
-    let word_map: HashMap<u32, Word> = dicts_to_hashmap(words);
-    let kanji_map: HashMap<u32, Kanji> = dicts_to_hashmap(kanjis);
-    let name_map: HashMap<u32, Name> = dicts_to_hashmap(names);
-    let radical_map: HashMap<String, Radical> = dicts_to_hashmap(radicals);
+    let word_map: HashMap<u32, &Word> = hashmap_of_dicts(&words);
+    let kanji_map: HashMap<u32, &Kanji> = hashmap_of_dicts(&kanjis);
+    let name_map: HashMap<u32, &Name> = hashmap_of_dicts(&names);
+    let radical_map: HashMap<String, &Radical> = hashmap_of_dicts(&radicals);
 
     Ok(())
 }

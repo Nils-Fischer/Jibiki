@@ -1,7 +1,6 @@
 use regex::Regex;
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 fn translation_map() -> HashMap<char, String> {
     vec![
         ('あ', "a".to_string()),
@@ -186,7 +185,6 @@ fn translation_map() -> HashMap<char, String> {
     .collect()
 }
 
-#[allow(dead_code)]
 pub fn kana_to_romaji(word: &str) -> String {
     let map: HashMap<char, String> = translation_map();
     let transformed: String = word

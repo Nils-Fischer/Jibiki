@@ -4,6 +4,8 @@ use crate::{
     dict_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
+    kana_utils::kana_to_romaji,
+    query::Query,
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -13,6 +15,7 @@ use std::collections::HashMap;
 pub struct Word {
     vocabulary: String,
     reading: String,
+    romaji: String,
     tags: HashMap<String, Tag>,
     meanings: Vec<String>,
     id: u32,
@@ -26,10 +29,28 @@ impl Key<u32> for Word {
     }
 }
 
+impl Query for Word {
+    fn possible_queries(&self) -> Vec<&String> {
+        self.meanings
+            .iter()
+            .chain(std::iter::once(&self.vocabulary))
+            .chain(std::iter::once(&self.reading))
+            .chain(std::iter::once(&self.romaji))
+            .collect()
+    }
+}
+
+impl ExportPath for Word {
+    fn export_path(&self) -> String {
+        WORDS_EXPORT_PATH.to_string()
+    }
+}
+
 impl Word {
     pub fn from(jmdict: Jmdict, innocent: Option<&Innocent>, kanjium: Option<&Kanjium>) -> Word {
         Word {
             vocabulary: jmdict.vocabulary.clone(),
+            romaji: kana_to_romaji(&jmdict.reading),
             reading: jmdict.reading.clone(),
             tags: jmdict.tags.clone(),
             meanings: jmdict.meanings.clone(),
@@ -40,16 +61,11 @@ impl Word {
     }
 }
 
-impl ExportPath for Word {
-    fn export_path(&self) -> String {
-        WORDS_EXPORT_PATH.to_string()
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Name {
     name: String,
     reading: String,
+    romaji: String,
     tags: HashMap<String, Tag>,
     translations: Vec<String>,
     id: u32,
@@ -61,15 +77,14 @@ impl Key<u32> for Name {
     }
 }
 
-impl Name {
-    pub fn from(jmnedict: Jmdict) -> Name {
-        Name {
-            name: jmnedict.vocabulary.clone(),
-            reading: jmnedict.reading.clone(),
-            tags: jmnedict.tags.clone(),
-            translations: jmnedict.meanings.clone(),
-            id: jmnedict.id,
-        }
+impl Query for Name {
+    fn possible_queries(&self) -> Vec<&String> {
+        self.translations
+            .iter()
+            .chain(std::iter::once(&self.name))
+            .chain(std::iter::once(&self.reading))
+            .chain(std::iter::once(&self.romaji))
+            .collect()
     }
 }
 
@@ -79,12 +94,25 @@ impl ExportPath for Name {
     }
 }
 
+impl Name {
+    pub fn from(jmnedict: Jmdict) -> Name {
+        Name {
+            name: jmnedict.vocabulary.clone(),
+            romaji: kana_to_romaji(&jmnedict.vocabulary),
+            reading: jmnedict.reading.clone(),
+            tags: jmnedict.tags.clone(),
+            translations: jmnedict.meanings.clone(),
+            id: jmnedict.id,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Kanji {
     kanji: String,
-    kun_yomi: String,
-    on_yomi: String,
-    meaning: Vec<String>,
+    on_yomi: Vec<String>,
+    kun_yomi: Vec<String>,
+    meanings: Vec<String>,
     strokes: u8,
     id: u32,
     frequency: Option<u32>,
@@ -92,17 +120,48 @@ pub struct Kanji {
     grade: Option<u8>,
     radicals: Option<Vec<String>>,
     tags: HashMap<String, Tag>,
-    pub attributes: HashMap<String, String>,
+    attributes: HashMap<String, String>,
+}
+
+impl Key<u32> for Kanji {
+    fn key(&self) -> u32 {
+        self.id
+    }
+}
+
+impl Query for Kanji {
+    fn possible_queries(&self) -> Vec<&String> {
+        self.meanings
+            .iter()
+            .chain(std::iter::once(&self.kanji))
+            .chain(self.kun_yomi.iter())
+            .chain(self.on_yomi.iter())
+            .collect()
+    }
+}
+
+impl ExportPath for Kanji {
+    fn export_path(&self) -> String {
+        KANJIS_EXPORT_PATH.to_string()
+    }
 }
 
 impl Kanji {
     pub fn from(kanjidic: Kanjidic, innocent: Option<&Innocent>, krad: Option<&Krad>) -> Kanji {
         Kanji {
             kanji: kanjidic.kanji.clone(),
-            kun_yomi: kanjidic.kun_yomi.clone(),
-            on_yomi: kanjidic.on_yomi.clone(),
+            kun_yomi: kanjidic
+                .kun_yomi
+                .split_whitespace()
+                .map(String::from)
+                .collect(),
+            on_yomi: kanjidic
+                .on_yomi
+                .split_whitespace()
+                .map(String::from)
+                .collect(),
             tags: kanjidic.tags.clone(),
-            meaning: kanjidic.meanings.clone(),
+            meanings: kanjidic.meanings.clone(),
             frequency: innocent.map(|i| i.frequency),
             radicals: krad.map(|k| k.radicals.clone()),
             strokes: kanjidic
@@ -129,18 +188,6 @@ impl Kanji {
                 .extract_if(|key, _| !["strokes", "ucs", "jlpt", "grade"].contains(&key.as_str()))
                 .collect(),
         }
-    }
-}
-
-impl Key<u32> for Kanji {
-    fn key(&self) -> u32 {
-        self.id
-    }
-}
-
-impl ExportPath for Kanji {
-    fn export_path(&self) -> String {
-        KANJIS_EXPORT_PATH.to_string()
     }
 }
 

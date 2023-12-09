@@ -2,8 +2,8 @@
 
 ## TO-DO
 
+- Querying in english text (including kanji)
 - Provide conjugations
-- Querying in english text
 - Example Sentences
 - Other forms
 - Audio

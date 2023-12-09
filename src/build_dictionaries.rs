@@ -37,7 +37,18 @@ pub trait Key<K> {
     fn key(&self) -> K;
 }
 
-pub fn dicts_to_hashmap<K, D>(dicts: Vec<D>) -> HashMap<K, D>
+pub fn hashmap_from_dicts<K, D>(dicts: Vec<D>) -> HashMap<K, D>
+where
+    D: Key<K>,
+    K: std::hash::Hash + Eq,
+{
+    dicts
+        .into_iter()
+        .map(|entry| (entry.key(), entry))
+        .collect()
+}
+
+pub fn hashmap_of_dicts<K, D>(dicts: &Vec<D>) -> HashMap<K, &D>
 where
     D: Key<K>,
     K: std::hash::Hash + Eq,
@@ -50,13 +61,13 @@ where
 
 pub fn build_composite_dicts() -> Result<()> {
     let jmdict_tags: HashMap<String, Tag> =
-        dicts_to_hashmap(load_json_dicts(jmdict_tag_paths(), None)?);
+        hashmap_from_dicts(load_json_dicts(jmdict_tag_paths(), None)?);
     let jmnedict_tags: HashMap<String, Tag> =
-        dicts_to_hashmap(load_json_dicts(jmnedict_tag_paths(), None)?);
+        hashmap_from_dicts(load_json_dicts(jmnedict_tag_paths(), None)?);
     let kanjidic_tags: HashMap<String, Tag> =
-        dicts_to_hashmap(load_json_dicts(kanjidic_tag_paths(), None)?);
+        hashmap_from_dicts(load_json_dicts(kanjidic_tag_paths(), None)?);
     let kanjium_tags: HashMap<String, Tag> =
-        dicts_to_hashmap(load_json_dicts(kanjium_tag_paths(), None)?);
+        hashmap_from_dicts(load_json_dicts(kanjium_tag_paths(), None)?);
     let jmdicts: Vec<Jmdict> = load_json_dicts(jmdict_dict_paths(), Some(jmdict_tags))?;
     let jmnedicts: Vec<Jmdict> = load_json_dicts(jmnedict_dict_paths(), Some(jmnedict_tags))?;
     let kanjium: Vec<Kanjium> = load_json_dicts(kanjium_dict_paths(), Some(kanjium_tags))?;
@@ -100,10 +111,10 @@ fn assemble_composite_dicts(
     krad: Vec<Krad>,
     radk: Vec<Radk>,
 ) -> Vec<CompositeDicts> {
-    let innocent_vocab_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_vocab);
-    let innocent_kanji_map: HashMap<String, Innocent> = dicts_to_hashmap(innocent_kanji);
-    let krad_map: HashMap<String, Krad> = dicts_to_hashmap(krad);
-    let kanjium_map: HashMap<String, Kanjium> = dicts_to_hashmap(kanjium);
+    let innocent_vocab_map: HashMap<String, Innocent> = hashmap_from_dicts(innocent_vocab);
+    let innocent_kanji_map: HashMap<String, Innocent> = hashmap_from_dicts(innocent_kanji);
+    let krad_map: HashMap<String, Krad> = hashmap_from_dicts(krad);
+    let kanjium_map: HashMap<String, Kanjium> = hashmap_from_dicts(kanjium);
     let kanji_dicts: Vec<Kanji> = assemble_kanji_dicts(kanjidic, &innocent_kanji_map, &krad_map);
     let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_vocab_map, &kanjium_map);
     let name_dicts: Vec<Name> = assemble_name_dicts(jmnedicts);
