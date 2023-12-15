@@ -1,7 +1,7 @@
 use crate::{
     basic_dictionaries::*,
     composite_dictionaries::{CompositeDicts, Kanji, Name, Radical, Word},
-    dict_paths::*,
+    dictionary_paths::*,
 };
 use anyhow::Result;
 use rayon::prelude::*;

@@ -1,9 +1,12 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::{build_composite_dicts, hashmap_from_dicts, hashmap_of_dicts};
+use build_dictionaries::{build_composite_dicts, hashmap_of_dicts};
 use composite_dictionaries::*;
-use dict_paths::{KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH};
+use dictionary_paths::{
+    KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
+};
+use query::to_queriable_dict;
 use std::{
     collections::HashMap,
     io::{self, BufRead, Write},
@@ -13,7 +16,7 @@ use structopt::StructOpt;
 mod basic_dictionaries;
 mod build_dictionaries;
 mod composite_dictionaries;
-mod dict_paths;
+mod dictionary_paths;
 mod kana_utils;
 mod load_dictionaries;
 mod query;
@@ -69,6 +72,11 @@ fn main() -> Result<()> {
     let kanji_map: HashMap<u32, &Kanji> = hashmap_of_dicts(&kanjis);
     let name_map: HashMap<u32, &Name> = hashmap_of_dicts(&names);
     let radical_map: HashMap<String, &Radical> = hashmap_of_dicts(&radicals);
+
+    let word_dict: HashMap<&String, Vec<&Word>> = to_queriable_dict(&words);
+    let kanji_dict: HashMap<&String, Vec<&Kanji>> = to_queriable_dict(&kanjis);
+    let name_dict: HashMap<&String, Vec<&Name>> = to_queriable_dict(&names);
+    let radical_dict: HashMap<&String, Vec<&Radical>> = to_queriable_dict(&radicals);
 
     Ok(())
 }

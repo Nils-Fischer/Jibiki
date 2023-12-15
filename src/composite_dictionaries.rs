@@ -1,7 +1,7 @@
 use crate::{
     basic_dictionaries::*,
     build_dictionaries::{export_dicts_as_bin, Key},
-    dict_paths::{
+    dictionary_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
     kana_utils::kana_to_romaji,
@@ -30,7 +30,7 @@ impl Key<u32> for Word {
 }
 
 impl Query for Word {
-    fn possible_queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&String> {
         self.meanings
             .iter()
             .chain(std::iter::once(&self.vocabulary))
@@ -78,7 +78,7 @@ impl Key<u32> for Name {
 }
 
 impl Query for Name {
-    fn possible_queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&String> {
         self.translations
             .iter()
             .chain(std::iter::once(&self.name))
@@ -130,7 +130,7 @@ impl Key<u32> for Kanji {
 }
 
 impl Query for Kanji {
-    fn possible_queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&String> {
         self.meanings
             .iter()
             .chain(std::iter::once(&self.kanji))
@@ -198,6 +198,18 @@ pub struct Radical {
     kanji: String,
 }
 
+impl Query for Radical {
+    fn queries(&self) -> Vec<&String> {
+        vec![&self.radical]
+    }
+}
+
+impl Key<String> for Radical {
+    fn key(&self) -> String {
+        self.radical.clone()
+    }
+}
+
 impl Radical {
     pub fn from(radk: Radk) -> Radical {
         Radical {
@@ -205,12 +217,6 @@ impl Radical {
             strokes: radk.strokes,
             kanji: radk.kanji.chars().collect(),
         }
-    }
-}
-
-impl Key<String> for Radical {
-    fn key(&self) -> String {
-        self.radical.clone()
     }
 }
 
