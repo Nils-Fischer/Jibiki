@@ -1,7 +1,7 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::{build_composite_dicts, hashmap_of_dicts};
+use build_dictionaries::build_composite_dicts;
 use composite_dictionaries::*;
 use dictionary_paths::{
     KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
@@ -9,7 +9,7 @@ use dictionary_paths::{
 use query::to_queriable_dict;
 use std::{
     collections::HashMap,
-    io::{self, BufRead, Write},
+    io::{self, Write},
 };
 use structopt::StructOpt;
 
