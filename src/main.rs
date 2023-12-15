@@ -34,19 +34,16 @@ struct Opt {
     args: Vec<String>,
 }
 
-fn read_input() -> Result<Vec<String>> {
+fn read_input(input: &mut String) -> Result<Vec<&str>> {
     print!("Enter query: ");
 
     io::stdout().flush()?;
 
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
+    io::stdin().read_line(input).expect("Failed to read line");
     Ok(input
         .trim()
         .split_ascii_whitespace()
-        .map(|s| s.trim().to_string())
+        .map(|s| s.trim())
         .collect())
 }
 
@@ -64,14 +61,15 @@ fn main() -> Result<()> {
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
 
-    let word_dict: HashMap<&String, Vec<&Word>> = to_queriable_dict(&words);
-    let kanji_dict: HashMap<&String, Vec<&Kanji>> = to_queriable_dict(&kanjis);
-    let name_dict: HashMap<&String, Vec<&Name>> = to_queriable_dict(&names);
-    let radical_dict: HashMap<&String, Vec<&Radical>> = to_queriable_dict(&radicals);
+    let word_dict: HashMap<&str, Vec<&Word>> = to_queriable_dict(&words);
+    let kanji_dict: HashMap<&str, Vec<&Kanji>> = to_queriable_dict(&kanjis);
+    let name_dict: HashMap<&str, Vec<&Name>> = to_queriable_dict(&names);
+    let radical_dict: HashMap<&str, Vec<&Radical>> = to_queriable_dict(&radicals);
 
     if opt.args.is_empty() {
         loop {
-            let queries: Vec<String> = read_input()?;
+            let empty_str = &mut String::new();
+            let queries: Vec<&str> = read_input(empty_str)?;
             for query in queries {
                 if let Some(result) = word_dict.get(&query) {
                     println!("{:#?}", result)
@@ -88,7 +86,8 @@ fn main() -> Result<()> {
             }
         }
     } else {
-        for query in opt.args {
+        for arg in opt.args {
+            let query = arg.as_str();
             if let Some(result) = word_dict.get(&query) {
                 println!("{:#?}", result)
             }

@@ -28,11 +28,12 @@ impl Key<u32> for Word {
 }
 
 impl Query for Word {
-    fn queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&str> {
         self.meanings
             .iter()
-            .chain(std::iter::once(&self.vocabulary))
-            .chain(std::iter::once(&self.reading))
+            .flat_map(|meaning| meaning.split(", "))
+            .chain(std::iter::once(self.vocabulary.as_str()))
+            .chain(std::iter::once(self.reading.as_str()))
             .collect()
     }
 }
@@ -73,11 +74,12 @@ impl Key<u32> for Name {
 }
 
 impl Query for Name {
-    fn queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&str> {
         self.translations
             .iter()
-            .chain(std::iter::once(&self.name))
-            .chain(std::iter::once(&self.reading))
+            .map(|str| str.as_str())
+            .chain(std::iter::once(self.name.as_str()))
+            .chain(std::iter::once(self.reading.as_str()))
             .collect()
     }
 }
@@ -123,12 +125,13 @@ impl Key<u32> for Kanji {
 }
 
 impl Query for Kanji {
-    fn queries(&self) -> Vec<&String> {
+    fn queries(&self) -> Vec<&str> {
         self.meanings
             .iter()
-            .chain(std::iter::once(&self.kanji))
-            .chain(self.kun_yomi.iter())
-            .chain(self.on_yomi.iter())
+            .map(|str| str.as_str())
+            .chain(std::iter::once(self.kanji.as_str()))
+            .chain(self.kun_yomi.iter().map(|str| str.as_str()))
+            .chain(self.on_yomi.iter().map(|str| str.as_str()))
             .collect()
     }
 }
@@ -192,8 +195,8 @@ pub struct Radical {
 }
 
 impl Query for Radical {
-    fn queries(&self) -> Vec<&String> {
-        vec![&self.radical]
+    fn queries(&self) -> Vec<&str> {
+        vec![self.radical.as_str()]
     }
 }
 
