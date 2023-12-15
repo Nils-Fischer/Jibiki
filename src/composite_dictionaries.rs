@@ -4,7 +4,6 @@ use crate::{
     dictionary_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
-    kana_utils::kana_to_romaji,
     query::Query,
 };
 use anyhow::Result;
@@ -15,7 +14,6 @@ use std::collections::HashMap;
 pub struct Word {
     vocabulary: String,
     reading: String,
-    romaji: String,
     tags: HashMap<String, Tag>,
     meanings: Vec<String>,
     id: u32,
@@ -35,7 +33,6 @@ impl Query for Word {
             .iter()
             .chain(std::iter::once(&self.vocabulary))
             .chain(std::iter::once(&self.reading))
-            .chain(std::iter::once(&self.romaji))
             .collect()
     }
 }
@@ -50,7 +47,6 @@ impl Word {
     pub fn from(jmdict: Jmdict, innocent: Option<&Innocent>, kanjium: Option<&Kanjium>) -> Word {
         Word {
             vocabulary: jmdict.vocabulary.clone(),
-            romaji: String::from(""),
             reading: jmdict.reading.clone(),
             tags: jmdict.tags.clone(),
             meanings: jmdict.meanings.clone(),
@@ -65,7 +61,6 @@ impl Word {
 pub struct Name {
     name: String,
     reading: String,
-    romaji: String,
     tags: HashMap<String, Tag>,
     translations: Vec<String>,
     pub id: u32,
@@ -83,7 +78,6 @@ impl Query for Name {
             .iter()
             .chain(std::iter::once(&self.name))
             .chain(std::iter::once(&self.reading))
-            .chain(std::iter::once(&self.romaji))
             .collect()
     }
 }
@@ -98,7 +92,6 @@ impl Name {
     pub fn from(jmnedict: Jmdict) -> Name {
         Name {
             name: jmnedict.vocabulary.clone(),
-            romaji: String::from(""),
             reading: jmnedict.reading.clone(),
             tags: jmnedict.tags.clone(),
             translations: jmnedict.meanings.clone(),

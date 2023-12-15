@@ -7,7 +7,10 @@ use anyhow::Result;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+};
 
 pub trait FromParsed<P> {
     fn from_parsed(parsed: P, tags: Option<&HashMap<String, Tag>>) -> Self;
@@ -49,6 +52,7 @@ where
         .collect()
 }
 
+#[allow(dead_code)]
 pub fn hashmap_of_dicts<K, D>(dicts: &[D]) -> HashMap<K, &D>
 where
     D: Key<K>,
@@ -143,7 +147,11 @@ fn assemble_word_dicts(
                 romaji: first.romaji.to_owned(),
                 tags: first.tags.to_owned(),
                 id: first.id,
-                meanings: words.map(|vec| vec.meanings.join(", ")).collect(),
+                meanings: words
+                    .map(|vec| vec.meanings.join(", "))
+                    .collect::<HashSet<String>>()
+                    .into_iter()
+                    .collect(),
             }
         })
         .map(|entry| {
