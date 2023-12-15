@@ -50,7 +50,7 @@ impl Word {
     pub fn from(jmdict: Jmdict, innocent: Option<&Innocent>, kanjium: Option<&Kanjium>) -> Word {
         Word {
             vocabulary: jmdict.vocabulary.clone(),
-            romaji: kana_to_romaji(&jmdict.reading),
+            romaji: String::from(""),
             reading: jmdict.reading.clone(),
             tags: jmdict.tags.clone(),
             meanings: jmdict.meanings.clone(),
@@ -98,7 +98,7 @@ impl Name {
     pub fn from(jmnedict: Jmdict) -> Name {
         Name {
             name: jmnedict.vocabulary.clone(),
-            romaji: kana_to_romaji(&jmnedict.vocabulary),
+            romaji: String::from(""),
             reading: jmnedict.reading.clone(),
             tags: jmnedict.tags.clone(),
             translations: jmnedict.meanings.clone(),

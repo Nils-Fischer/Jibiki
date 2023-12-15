@@ -78,5 +78,8 @@ fn main() -> Result<()> {
     let name_dict: HashMap<&String, Vec<&Name>> = to_queriable_dict(&names);
     let radical_dict: HashMap<&String, Vec<&Radical>> = to_queriable_dict(&radicals);
 
+    println!("{:#?}", *word_dict.get(&String::from("方")).unwrap());
+    println!("{:#?}", *kanji_dict.get(&String::from("光")).unwrap());
+
     Ok(())
 }

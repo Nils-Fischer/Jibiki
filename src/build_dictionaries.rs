@@ -4,6 +4,7 @@ use crate::{
     dictionary_paths::*,
 };
 use anyhow::Result;
+use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File};
@@ -48,15 +49,12 @@ where
         .collect()
 }
 
-pub fn hashmap_of_dicts<K, D>(dicts: &Vec<D>) -> HashMap<K, &D>
+pub fn hashmap_of_dicts<K, D>(dicts: &[D]) -> HashMap<K, &D>
 where
     D: Key<K>,
     K: std::hash::Hash + Eq,
 {
-    dicts
-        .into_iter()
-        .map(|entry| (entry.key(), entry))
-        .collect()
+    dicts.iter().map(|entry| (entry.key(), entry)).collect()
 }
 
 pub fn build_composite_dicts() -> Result<()> {
@@ -134,6 +132,20 @@ fn assemble_word_dicts(
 ) -> Vec<Word> {
     jmdicts
         .into_iter()
+        .group_by(|word| word.key())
+        .into_iter()
+        .map(|(_, group)| {
+            let mut words = group.into_iter().peekable();
+            let first = words.peek().unwrap();
+            Jmdict {
+                vocabulary: first.vocabulary.to_owned(),
+                reading: first.reading.to_owned(),
+                romaji: first.romaji.to_owned(),
+                tags: first.tags.to_owned(),
+                id: first.id,
+                meanings: words.map(|vec| vec.meanings.join(", ")).collect(),
+            }
+        })
         .map(|entry| {
             let innocent_value = innocent_map.get(entry.vocabulary.as_str());
             let kanjium_value = kanjium_map.get(entry.vocabulary.as_str());

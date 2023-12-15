@@ -63,6 +63,12 @@ pub struct Jmdict {
     pub id: u32,
 }
 
+impl Key<u32> for Jmdict {
+    fn key(&self) -> u32 {
+        self.id
+    }
+}
+
 impl FromParsed<ParseJmdict> for Jmdict {
     fn from_parsed(parsed: ParseJmdict, tags: Option<&HashMap<String, Tag>>) -> Self {
         Jmdict {
