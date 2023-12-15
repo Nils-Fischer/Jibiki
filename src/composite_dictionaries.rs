@@ -68,7 +68,7 @@ pub struct Name {
     romaji: String,
     tags: HashMap<String, Tag>,
     translations: Vec<String>,
-    id: u32,
+    pub id: u32,
 }
 
 impl Key<u32> for Name {

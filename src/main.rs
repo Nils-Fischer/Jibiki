@@ -38,20 +38,16 @@ fn read_input() -> Result<Vec<String>> {
     print!("Enter query: ");
 
     io::stdout().flush()?;
-    let stdin = io::stdin();
-    let inputs: Vec<String> = stdin
-        .lock()
-        .lines()
-        .filter_map(|line| {
-            line.ok().map(|line| {
-                line.split_whitespace()
-                    .map(String::from)
-                    .collect::<Vec<String>>()
-            })
-        })
-        .flatten()
-        .collect();
-    Ok(inputs)
+
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+    Ok(input
+        .trim()
+        .split_ascii_whitespace()
+        .map(|s| s.trim().to_string())
+        .collect())
 }
 
 fn main() -> Result<()> {
@@ -68,18 +64,44 @@ fn main() -> Result<()> {
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
 
-    let word_map: HashMap<u32, &Word> = hashmap_of_dicts(&words);
-    let kanji_map: HashMap<u32, &Kanji> = hashmap_of_dicts(&kanjis);
-    let name_map: HashMap<u32, &Name> = hashmap_of_dicts(&names);
-    let radical_map: HashMap<String, &Radical> = hashmap_of_dicts(&radicals);
-
     let word_dict: HashMap<&String, Vec<&Word>> = to_queriable_dict(&words);
     let kanji_dict: HashMap<&String, Vec<&Kanji>> = to_queriable_dict(&kanjis);
     let name_dict: HashMap<&String, Vec<&Name>> = to_queriable_dict(&names);
     let radical_dict: HashMap<&String, Vec<&Radical>> = to_queriable_dict(&radicals);
 
-    println!("{:#?}", *word_dict.get(&String::from("方")).unwrap());
-    println!("{:#?}", *kanji_dict.get(&String::from("光")).unwrap());
-
+    if opt.args.is_empty() {
+        loop {
+            let queries: Vec<String> = read_input()?;
+            for query in queries {
+                if let Some(result) = word_dict.get(&query) {
+                    println!("{:#?}", result)
+                }
+                if let Some(result) = kanji_dict.get(&query) {
+                    println!("{:#?}", result)
+                }
+                if let Some(result) = name_dict.get(&query) {
+                    println!("{:#?}", result)
+                }
+                if let Some(result) = radical_dict.get(&query) {
+                    println!("{:#?}", result)
+                }
+            }
+        }
+    } else {
+        for query in opt.args {
+            if let Some(result) = word_dict.get(&query) {
+                println!("{:#?}", result)
+            }
+            if let Some(result) = kanji_dict.get(&query) {
+                println!("{:#?}", result)
+            }
+            if let Some(result) = name_dict.get(&query) {
+                println!("{:#?}", result)
+            }
+            if let Some(result) = radical_dict.get(&query) {
+                println!("{:#?}", result)
+            }
+        }
+    }
     Ok(())
 }
