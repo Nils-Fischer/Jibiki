@@ -23,9 +23,13 @@ pub fn kana_to_romaji(word: &str) -> String {
     transformed.to_string()
 }
 
-pub fn romaji_to_katakana(word: &str) -> Result<String> {
+fn could_be_romaji(word: &str) -> bool {
     let allowed_characters = Regex::new(r"^[a-pr-z\-']*$").unwrap();
-    if allowed_characters.captures(word).is_none() {
+    allowed_characters.captures(word).is_none()
+}
+
+pub fn romaji_to_katakana(word: &str) -> Result<String> {
+    if could_be_romaji(word) {
         return Err(NotConvertibleError::new(word).into());
     }
     let soukun_chars: Vec<u8> = vec![
