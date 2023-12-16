@@ -6,7 +6,7 @@ use composite_dictionaries::*;
 use dictionary_paths::{
     KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
 };
-use query::to_queriable_dict;
+use query::*;
 use std::{
     collections::HashMap,
     io::{self, Write},
@@ -71,18 +71,7 @@ fn main() -> Result<()> {
             let empty_str = &mut String::new();
             let queries: Vec<&str> = read_input(empty_str)?;
             for query in queries {
-                if let Some(result) = word_dict.get(&query) {
-                    println!("{:#?}", result)
-                }
-                if let Some(result) = kanji_dict.get(&query) {
-                    println!("{:#?}", result)
-                }
-                if let Some(result) = name_dict.get(&query) {
-                    println!("{:#?}", result)
-                }
-                if let Some(result) = radical_dict.get(&query) {
-                    println!("{:#?}", result)
-                }
+                query()
             }
         }
     } else {

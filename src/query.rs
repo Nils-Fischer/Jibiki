@@ -43,21 +43,47 @@ impl<'a> QueriableDict<'a> {
     }
 
     pub fn query(&self, query: &str) {
-        if let Some(result) = self.word_dict.get(&query) {
+        self.query_multiple(vec![query])
+    }
+
+    pub fn query_multiple(&self, queries: Vec<&str>) {
+        if let Some(result) = self.query_dict(&self.name_dict, &queries) {
             println!("{:#?}", result)
         }
-        if let Some(result) = self.kanji_dict.get(&query) {
+        if let Some(result) = self.query_dict(&self.kanji_dict, &queries) {
             println!("{:#?}", result)
         }
-        if let Some(result) = self.name_dict.get(&query) {
+        if let Some(result) = self.query_dict(&self.name_dict, &queries) {
             println!("{:#?}", result)
         }
-        if let Some(result) = self.radical_dict.get(&query) {
+        if let Some(result) = self.query_dict(&self.radical_dict, &queries) {
             println!("{:#?}", result)
         }
     }
 
-    pub fn get_by_romaji<D>(
+    pub fn query_by_romaji(&self, query: &str) -> Result<()> {
+        let katakana_query = romaji_to_katakana(query)?;
+        let hiragana_query = katakana_to_hiragana(&katakana_query)?;
+        self.query_multiple(vec![katakana_query.as_str(), hiragana_query.as_str()]);
+        Ok(())
+    }
+
+    fn query_dict<D>(
+        &self,
+        dict: &'a HashMap<&'a str, Vec<&'a D>>,
+        queries: &Vec<&'a str>,
+    ) -> Option<Vec<&'a D>> {
+        let results: Vec<&D> = queries
+            .into_iter()
+            .flat_map(|query| dict.get(query).cloned().unwrap_or_default())
+            .collect();
+        match results.is_empty() {
+            true => None,
+            false => Some(results),
+        }
+    }
+
+    fn get_by_romaji<D>(
         &self,
         dict: &'a HashMap<&'a str, Vec<&'a D>>,
         query: &str,
