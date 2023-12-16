@@ -2,7 +2,217 @@ use anyhow::Result;
 use core::fmt;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{collections::HashMap, default, error::Error, fmt::format, iter};
+use std::{collections::HashMap, error::Error};
+
+#[allow(dead_code)]
+pub fn kana_to_romaji(word: &str) -> String {
+    let transformed: String = word
+        .chars()
+        .map(|c| {
+            KANA_TO_ENGLISH
+                .get(&c)
+                .unwrap_or_else(|| panic!("Unknown character in word: {}", word))
+                .as_str()
+        })
+        .collect::<Vec<&str>>()
+        .join("");
+    let minus = Regex::new(r".\-").unwrap();
+    let plus = Regex::new(r"\+(\w)").unwrap();
+    let transformed = minus.replace_all(&transformed, "");
+    let transformed = plus.replace_all(&transformed, "${1}${1}");
+    transformed.to_string()
+}
+
+pub fn romaji_to_katakana(word: &str) -> Result<String> {
+    let allowed_characters = Regex::new(r"^[a-pr-z\-']*$").unwrap();
+    if allowed_characters.captures(word).is_none() {
+        return Err(NotConvertibleError::new(word).into());
+    }
+    let soukun_chars: Vec<u8> = vec![
+        98, 99, 100, 102, 103, 104, 106, 107, 108, 109, 112, 114, 115, 116, 118, 119, 120, 121, 122,
+    ];
+    let mut katakana = String::new();
+    let chars: Vec<u8> = String::from(word).into_bytes();
+    let mut index = 0;
+    while index < chars.len() {
+        let l1 = chars[index];
+        let l2 = chars.get(index + 1).copied();
+        let l3 = chars.get(index + 2).copied();
+        let l4 = chars.get(index + 3).copied();
+        println!("{}{:?}{:?}{:?}", l1, l2, l3, l4);
+        katakana += if l1 == 110 {
+            index += 3;
+            l3.and_then(|l3| {
+                let triple_letter_word = String::from_utf8(vec![l1, l2.unwrap_or_default(), l3])
+                    .expect("Character should be valid utf8");
+                THREE_LETTER_TO_KATAKANA.get(&triple_letter_word)
+            })
+            .or_else(|| {
+                index -= 1;
+                l2.and_then(|l2| {
+                    let double_letter_word =
+                        String::from_utf8(vec![l1, l2]).expect("Character should be valid utf8");
+                    TWO_LETTER_TO_KATAKANA.get(&double_letter_word)
+                })
+            })
+            .or_else(|| {
+                index -= 1;
+                let single_letter_word =
+                    String::from_utf8(vec![l1]).expect("Character should be valid utf8");
+                ONE_LETTER_TO_KATAKANA.get(&single_letter_word)
+            })
+            .ok_or_else(|| NotConvertibleError::new(word))?
+        } else {
+            index += 1;
+            let single_letter_word =
+                String::from_utf8(vec![l1]).expect("Character should be valid utf8");
+            ONE_LETTER_TO_KATAKANA
+                .get(&single_letter_word)
+                .or_else(|| {
+                    index += 1;
+                    l2.and_then(|l2| {
+                        if l2 == l1 && soukun_chars.contains(&l1) {
+                            index -= 1;
+                            let small_tsu = String::from("xtsu");
+                            FOUR_LETTER_TO_KATAKANA.get(&small_tsu)
+                        } else {
+                            let double_letter_word = String::from_utf8(vec![l1, l2])
+                                .expect("Character should be valid utf8");
+                            TWO_LETTER_TO_KATAKANA.get(&double_letter_word)
+                        }
+                    })
+                })
+                .or_else(|| {
+                    index += 1;
+                    l3.and_then(|l3| {
+                        let triple_letter_word =
+                            String::from_utf8(vec![l1, l2.unwrap_or_default(), l3])
+                                .expect("Character should be valid utf8");
+                        THREE_LETTER_TO_KATAKANA.get(&triple_letter_word)
+                    })
+                })
+                .or_else(|| {
+                    index += 1;
+                    l4.and_then(|l4| {
+                        let quadruple_letter_word = String::from_utf8(vec![
+                            l1,
+                            l2.unwrap_or_default(),
+                            l3.unwrap_or_default(),
+                            l4,
+                        ])
+                        .expect("Character should be valid utf8");
+                        FOUR_LETTER_TO_KATAKANA.get(&quadruple_letter_word)
+                    })
+                })
+                .ok_or_else(|| NotConvertibleError::new(word))?
+        }
+    }
+    Ok(katakana)
+}
+
+pub fn romaji_to_hiragana(word: &str) -> Result<String> {
+    romaji_to_katakana(word)
+        .map(|katakana| katakana_to_hiragana(&katakana).expect("Should be valid hiragana"))
+}
+
+pub fn katakana_to_hiragana(word: &str) -> Result<String> {
+    if !word
+        .chars()
+        .all(|c| (0x3041..=0x30fe).contains(&(c as u16)))
+    {
+        return Err(NotConvertibleError::new(word).into());
+    }
+    let as_u16: Vec<u16> = word.chars().map(|char| char as u16 - 0x60).collect();
+    Ok(String::from_utf16(&as_u16).expect("Should be valid utf8"))
+}
+
+#[derive(Debug)]
+struct NotConvertibleError {
+    word: String,
+}
+
+impl NotConvertibleError {
+    #[allow(unused)]
+    fn new(word: &str) -> NotConvertibleError {
+        NotConvertibleError {
+            word: word.to_string(),
+        }
+    }
+}
+
+impl Error for NotConvertibleError {}
+
+impl fmt::Display for NotConvertibleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} is not convertible", self.word)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_romaji_to_hiragana() {
+        assert_eq!(romaji_to_hiragana("").unwrap(), "");
+        assert_eq!(romaji_to_hiragana("sayonara").unwrap(), "さよなら");
+        assert_eq!(romaji_to_hiragana("tsukue").unwrap(), "つくえ");
+        assert_eq!(romaji_to_hiragana("tukue").unwrap(), "つくえ");
+        assert_eq!(romaji_to_hiragana("kinnyoubi").unwrap(), "きんようび");
+        assert_eq!(romaji_to_hiragana("kin'youbi").unwrap(), "きんようび");
+        assert_eq!(romaji_to_hiragana("konnya").unwrap(), "こんや");
+        assert_eq!(romaji_to_hiragana("konnnichi").unwrap(), "こんにち");
+        assert_eq!(romaji_to_hiragana("kaetta").unwrap(), "かえった");
+        assert_eq!(romaji_to_hiragana("kon'nichiha").unwrap(), "こんにちは");
+        assert_eq!(romaji_to_hiragana("arigatou").unwrap(), "ありがとう");
+        assert_eq!(romaji_to_hiragana("ohayou").unwrap(), "おはよう");
+        assert_eq!(romaji_to_hiragana("nihon").unwrap(), "にほん");
+        assert_eq!(romaji_to_hiragana("kyou").unwrap(), "きょう");
+        assert_eq!(romaji_to_hiragana("gakkou").unwrap(), "がっこう");
+        assert_eq!(romaji_to_hiragana("ryokou").unwrap(), "りょこう");
+        assert_eq!(romaji_to_hiragana("shashin").unwrap(), "しゃしん");
+        assert_eq!(romaji_to_hiragana("chikatetsu").unwrap(), "ちかてつ");
+        assert_eq!(romaji_to_hiragana("jyuusho").unwrap(), "じゅうしょ");
+        assert_eq!(romaji_to_hiragana("fuji").unwrap(), "ふじ");
+    }
+
+    #[test]
+    fn test_romaji_to_katakana() {
+        assert_eq!(romaji_to_katakana("konnbann").unwrap(), "コンバン");
+        assert_eq!(romaji_to_katakana("tsukue").unwrap(), "ツクエ");
+        assert_eq!(romaji_to_katakana("tukue").unwrap(), "ツクエ");
+        assert_eq!(romaji_to_katakana("kinnyoubi").unwrap(), "キンヨウビ");
+        assert_eq!(romaji_to_katakana("kin'youbi").unwrap(), "キンヨウビ");
+        assert_eq!(romaji_to_katakana("konnya").unwrap(), "コンヤ");
+        assert_eq!(romaji_to_katakana("konnnichi").unwrap(), "コンニチ");
+        assert_eq!(romaji_to_katakana("kaetta").unwrap(), "カエッタ");
+        assert_eq!(romaji_to_katakana("arigatou").unwrap(), "アリガトウ");
+        assert_eq!(romaji_to_katakana("ohayou").unwrap(), "オハヨウ");
+        assert_eq!(romaji_to_katakana("nihon").unwrap(), "ニホン");
+        assert_eq!(romaji_to_katakana("kyou").unwrap(), "キョウ");
+        assert_eq!(romaji_to_katakana("gakkou").unwrap(), "ガッコウ");
+        assert_eq!(romaji_to_katakana("ryokou").unwrap(), "リョコウ");
+        assert_eq!(romaji_to_katakana("shashin").unwrap(), "シャシン");
+        assert_eq!(romaji_to_katakana("chikatetsu").unwrap(), "チカテツ");
+        assert_eq!(romaji_to_katakana("jyuusho").unwrap(), "ジュウショ");
+        assert_eq!(romaji_to_katakana("fuji").unwrap(), "フジ");
+    }
+
+    #[test]
+    fn test_katakana_to_hiragana() {
+        assert_eq!(katakana_to_hiragana("サヨナラ").unwrap(), "さよなら");
+        assert_eq!(katakana_to_hiragana("アリガトウ").unwrap(), "ありがとう");
+        assert_eq!(katakana_to_hiragana("オハヨウ").unwrap(), "おはよう");
+        assert_eq!(katakana_to_hiragana("ニホン").unwrap(), "にほん");
+        assert_eq!(katakana_to_hiragana("キョウ").unwrap(), "きょう");
+        assert_eq!(katakana_to_hiragana("ガッコウ").unwrap(), "がっこう");
+        assert_eq!(katakana_to_hiragana("リョコウ").unwrap(), "りょこう");
+        assert_eq!(katakana_to_hiragana("シャシン").unwrap(), "しゃしん");
+        assert_eq!(katakana_to_hiragana("チカテツ").unwrap(), "ちかてつ");
+        assert_eq!(katakana_to_hiragana("ジュウショ").unwrap(), "じゅうしょ");
+        assert_eq!(katakana_to_hiragana("フジ").unwrap(), "ふじ");
+    }
+}
 
 lazy_static! {
     static ref KANA_TO_ENGLISH: HashMap<char, String> = {
@@ -186,7 +396,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref ONE_LETTER_TO_HIRAGANA: HashMap<String, String> = {
+    static ref ONE_LETTER_TO_KATAKANA: HashMap<String, String> = {
         vec![
             ("a".to_string(), "ア".to_string()),
             ("i".to_string(), "イ".to_string()),
@@ -203,7 +413,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref TWO_LETTER_TO_HIRAGANA: HashMap<String, String> = {
+    static ref TWO_LETTER_TO_KATAKANA: HashMap<String, String> = {
         vec![
             ("xa".to_string(), "ァ".to_string()),
             ("xi".to_string(), "ィ".to_string()),
@@ -299,9 +509,9 @@ lazy_static! {
             ("le".to_string(), "レ".to_string()),
             ("lo".to_string(), "ロ".to_string()),
             ("wa".to_string(), "ワ".to_string()),
-            ("wi".to_string(), "ウィ".to_string()),
+            ("wi".to_string(), "ヰ".to_string()),
             ("wu".to_string(), "ウ".to_string()),
-            ("we".to_string(), "ウェ".to_string()),
+            ("we".to_string(), "ヱ".to_string()),
             ("wo".to_string(), "ヲ".to_string()),
             ("nn".to_string(), "ン".to_string()),
         ]
@@ -311,12 +521,12 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref THREE_LETTER_TO_HIRAGANA: HashMap<String, String> = {
+    static ref THREE_LETTER_TO_KATAKANA: HashMap<String, String> = {
         vec![
+            ("tsu".to_string(), "ツ".to_string()),
             ("xka".to_string(), "ヵ".to_string()),
             ("xke".to_string(), "ヶ".to_string()),
             ("xwa".to_string(), "ヮ".to_string()),
-            ("xtsu".to_string(), "ッ".to_string()),
             ("xya".to_string(), "ャ".to_string()),
             ("xyu".to_string(), "ュ".to_string()),
             ("xyo".to_string(), "ョ".to_string()),
@@ -355,16 +565,6 @@ lazy_static! {
             ("tyu".to_string(), "チュ".to_string()),
             ("tye".to_string(), "チェ".to_string()),
             ("tyo".to_string(), "チョ".to_string()),
-            ("twa".to_string(), "トァ".to_string()),
-            ("twi".to_string(), "トィ".to_string()),
-            ("twu".to_string(), "トゥ".to_string()),
-            ("twe".to_string(), "トェ".to_string()),
-            ("two".to_string(), "トォ".to_string()),
-            ("dwa".to_string(), "ドァ".to_string()),
-            ("dwi".to_string(), "ドィ".to_string()),
-            ("dwu".to_string(), "ドゥ".to_string()),
-            ("dwe".to_string(), "ドェ".to_string()),
-            ("dwo".to_string(), "ドォ".to_string()),
             ("cya".to_string(), "チャ".to_string()),
             ("cyi".to_string(), "チィ".to_string()),
             ("cyu".to_string(), "チュ".to_string()),
@@ -431,113 +631,10 @@ lazy_static! {
     };
 }
 
-#[allow(dead_code)]
-pub fn kana_to_romaji(word: &str) -> String {
-    let transformed: String = word
-        .chars()
-        .map(|c| {
-            KANA_TO_ENGLISH
-                .get(&c)
-                .unwrap_or_else(|| panic!("Unknown character in word: {}", word))
-                .as_str()
-        })
-        .collect::<Vec<&str>>()
-        .join("");
-    let minus = Regex::new(r".\-").unwrap();
-    let plus = Regex::new(r"\+(\w)").unwrap();
-    let transformed = minus.replace_all(&transformed, "");
-    let transformed = plus.replace_all(&transformed, "${1}${1}");
-    transformed.to_string()
-}
-
-pub fn romaji_to_katakana(word: &str) -> Result<String> {
-    let allowed_characters = Regex::new(r"^[a-pr-z\-]+$").unwrap();
-    if allowed_characters.captures(word).is_none() {
-        return Err(NotConvertibleToKanaError::new(word).into());
-    }
-    let mut katakana = String::new();
-    let bytes_vec: Vec<u8> = String::from(word).into_bytes();
-    let mut iter = bytes_vec.iter().enumerate();
-
-    while let Some((index, byte)) = iter.next() {
-        let l1 = *byte;
-        if l1 == 110 {
-            let l2 = *bytes_vec.get(index + 1).unwrap_or(&0);
-            let l3 = *bytes_vec.get(index + 2).unwrap_or(&0);
-            let triple_letter =
-                &String::from_utf8(vec![l1, l2, l3]).expect("Character should be valid utf8");
-            katakana += THREE_LETTER_TO_HIRAGANA
-                .get(triple_letter)
-                .map(|str| {
-                    iter.next();
-                    iter.next();
-                    str
-                })
-                .or_else(|| {
-                    let l2 = *bytes_vec.get(index + 1).unwrap_or(&0);
-                    let double_letter =
-                        &String::from_utf8(vec![l1, l2]).expect("Character should be valid utf8");
-                    TWO_LETTER_TO_HIRAGANA.get(double_letter).map(|str| {
-                        iter.next();
-                        str
-                    })
-                })
-                .or_else(|| {
-                    let single_letter =
-                        &String::from_utf8(vec![l1]).expect("Character should be valid utf8");
-                    ONE_LETTER_TO_HIRAGANA.get(single_letter)
-                })
-                .ok_or_else(|| NotConvertibleToKanaError::new(word))?;
-        } else {
-            let single_letter =
-                String::from_utf8(vec![l1]).expect("Character should be valid utf8");
-            katakana += ONE_LETTER_TO_HIRAGANA
-                .get(&single_letter)
-                .or_else(|| {
-                    let l2 = iter.next().map(|(_, c)| *c).unwrap_or_default();
-                    let double_letter =
-                        &String::from_utf8(vec![l1, l2]).expect("Character should be valid utf8");
-                    TWO_LETTER_TO_HIRAGANA.get(double_letter)
-                })
-                .or_else(|| {
-                    let l2 = *bytes_vec.get(index + 1).unwrap_or(&0);
-                    let l3 = iter.next().map(|(_, c)| *c).unwrap_or_default();
-                    let triple_letter = &String::from_utf8(vec![l1, l2, l3])
-                        .expect("Character should be valid utf8");
-                    THREE_LETTER_TO_HIRAGANA.get(triple_letter)
-                })
-                .ok_or_else(|| NotConvertibleToKanaError::new(word))?;
-        }
-    }
-    Ok(katakana)
-}
-
-pub fn romaji_to_hiragana(word: &str) -> Result<String> {
-    romaji_to_katakana(word).map(|katakana| katakana_to_hiragana(&katakana))
-}
-
-pub fn katakana_to_hiragana(word: &str) -> String {
-    let as_u8: Vec<u8> = word.chars().map(|char| (char as u8) - 0x60).collect();
-    String::from_utf8(as_u8).expect("Should be valid utf8")
-}
-
-#[derive(Debug)]
-struct NotConvertibleToKanaError {
-    word: String,
-}
-
-impl NotConvertibleToKanaError {
-    fn new(word: &str) -> NotConvertibleToKanaError {
-        NotConvertibleToKanaError {
-            word: word.to_string(),
-        }
-    }
-}
-
-impl Error for NotConvertibleToKanaError {}
-
-impl fmt::Display for NotConvertibleToKanaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} is not convertible to kana", self.word)
-    }
+lazy_static! {
+    static ref FOUR_LETTER_TO_KATAKANA: HashMap<String, String> = {
+        vec![("xtsu".to_string(), "ッ".to_string())]
+            .into_iter()
+            .collect()
+    };
 }
