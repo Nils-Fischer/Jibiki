@@ -6,6 +6,7 @@ use composite_dictionaries::*;
 use dictionary_paths::{
     KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
 };
+use kana_utils::romaji_to_katakana;
 use query::*;
 use std::{
     collections::HashMap,
@@ -61,34 +62,20 @@ fn main() -> Result<()> {
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
 
-    let word_dict: HashMap<&str, Vec<&Word>> = to_queriable_dict(&words);
-    let kanji_dict: HashMap<&str, Vec<&Kanji>> = to_queriable_dict(&kanjis);
-    let name_dict: HashMap<&str, Vec<&Name>> = to_queriable_dict(&names);
-    let radical_dict: HashMap<&str, Vec<&Radical>> = to_queriable_dict(&radicals);
+    let dict = QueriableDict::new(&words, &kanjis, &names, &radicals);
 
     if opt.args.is_empty() {
         loop {
             let empty_str = &mut String::new();
             let queries: Vec<&str> = read_input(empty_str)?;
             for query in queries {
-                query()
+                dict.query(query)
             }
         }
     } else {
         for arg in opt.args {
             let query = arg.as_str();
-            if let Some(result) = word_dict.get(&query) {
-                println!("{:#?}", result)
-            }
-            if let Some(result) = kanji_dict.get(&query) {
-                println!("{:#?}", result)
-            }
-            if let Some(result) = name_dict.get(&query) {
-                println!("{:#?}", result)
-            }
-            if let Some(result) = radical_dict.get(&query) {
-                println!("{:#?}", result)
-            }
+            dict.query(query)
         }
     }
     Ok(())

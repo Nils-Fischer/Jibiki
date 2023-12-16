@@ -14,8 +14,8 @@ use std::collections::HashMap;
 pub struct Word {
     vocabulary: String,
     reading: String,
-    tags: HashMap<String, Tag>,
     meanings: Vec<String>,
+    tags: HashMap<String, Tag>,
     id: u32,
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,

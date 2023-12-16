@@ -1,6 +1,6 @@
 use crate::{
     composite_dictionaries::{Kanji, Name, Radical, Word},
-    kana_utils::{katakana_to_hiragana, romaji_to_katakana},
+    kana_utils::{katakana_to_hiragana, romaji_to_hiragana, romaji_to_katakana},
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -29,25 +29,60 @@ pub struct QueriableDict<'a> {
 
 impl<'a> QueriableDict<'a> {
     pub fn new(
-        words: HashMap<&'a str, Vec<&'a Word>>,
-        kanjis: HashMap<&'a str, Vec<&'a Kanji>>,
-        names: HashMap<&'a str, Vec<&'a Name>>,
-        radicals: HashMap<&'a str, Vec<&'a Radical>>,
+        words: &'a [Word],
+        kanjis: &'a [Kanji],
+        names: &'a [Name],
+        radicals: &'a [Radical],
     ) -> QueriableDict<'a> {
         QueriableDict {
-            word_dict: words,
-            kanji_dict: kanjis,
-            name_dict: names,
-            radical_dict: radicals,
+            word_dict: to_queriable_dict(words),
+            kanji_dict: to_queriable_dict(kanjis),
+            name_dict: to_queriable_dict(names),
+            radical_dict: to_queriable_dict(radicals),
         }
     }
 
+    fn worth_converting(&self, query: &str, converted: &[&str]) -> bool {
+        let normal_results = self
+            .word_dict
+            .get(query)
+            .map(|results| results.len())
+            .unwrap_or_default();
+        let converted_results = self
+            .query_dict(&self.word_dict, converted)
+            .map(|results| results.len())
+            .unwrap_or_default();
+        converted_results > normal_results
+    }
+
     pub fn query(&self, query: &str) {
-        self.query_multiple(vec![query])
+        let converted_to_katakana = romaji_to_katakana(query).ok();
+        let converted_to_hiragana = converted_to_katakana
+            .clone()
+            .map(|katakana| katakana_to_hiragana(&katakana).expect("Should be valid katakana"));
+        match converted_to_hiragana {
+            None => self.query_multiple(vec![query]),
+            Some(hiragana) => {
+                let katakana = &converted_to_katakana.unwrap();
+                match self.worth_converting(query, &[&hiragana, &katakana]) {
+                    true => {
+                        println!(
+                            "Searched for {}, you can also search for \"{}\"",
+                            hiragana, query
+                        );
+                        self.query_by_romaji(query).unwrap();
+                    }
+                    false => {
+                        println!("You can also search for {} or {}", hiragana, katakana);
+                        self.query_multiple(vec![query]);
+                    }
+                }
+            }
+        }
     }
 
     pub fn query_multiple(&self, queries: Vec<&str>) {
-        if let Some(result) = self.query_dict(&self.name_dict, &queries) {
+        if let Some(result) = self.query_dict(&self.word_dict, &queries) {
             println!("{:#?}", result)
         }
         if let Some(result) = self.query_dict(&self.kanji_dict, &queries) {
@@ -71,40 +106,19 @@ impl<'a> QueriableDict<'a> {
     fn query_dict<D>(
         &self,
         dict: &'a HashMap<&'a str, Vec<&'a D>>,
-        queries: &Vec<&'a str>,
+        queries: &[&'a str],
     ) -> Option<Vec<&'a D>> {
         let results: Vec<&D> = queries
-            .into_iter()
-            .flat_map(|query| dict.get(query).cloned().unwrap_or_default())
+            .iter()
+            .flat_map(|query| dict.get(clean_query(query)).cloned().unwrap_or_default())
             .collect();
         match results.is_empty() {
             true => None,
             false => Some(results),
         }
     }
+}
 
-    fn get_by_romaji<D>(
-        &self,
-        dict: &'a HashMap<&'a str, Vec<&'a D>>,
-        query: &str,
-    ) -> Result<Option<Vec<&D>>> {
-        let katakana_query = romaji_to_katakana(query)?;
-        let hiragana_query = katakana_to_hiragana(&katakana_query)?;
-        let katakana_results = dict
-            .get(katakana_query.as_str())
-            .cloned()
-            .unwrap_or_default();
-        let hiragana_results = dict
-            .get(hiragana_query.as_str())
-            .cloned()
-            .unwrap_or_default();
-        let combined_results: Vec<&D> = katakana_results
-            .into_iter()
-            .chain(hiragana_results)
-            .collect();
-        Ok(match combined_results.is_empty() {
-            true => None,
-            false => Some(combined_results),
-        })
-    }
+fn clean_query(query: &str) -> &str {
+    query.trim_matches(|c: char| c == '"' || c == '“' || c == '”' || c.is_whitespace())
 }
