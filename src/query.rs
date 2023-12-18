@@ -44,16 +44,31 @@ impl<'a> QueriableDict<'a> {
     }
 
     fn worth_converting(&self, query: &str, converted: &[&str]) -> bool {
-        let normal_results = self
-            .word_dict
-            .get(query)
+        let normal_num = self
+            .query_dict(&self.word_dict, &[query])
             .map(|results| results.len())
-            .unwrap_or_default();
-        let converted_results = self
+            .unwrap_or_default()
+            + self
+                .query_dict(&self.name_dict, &[query])
+                .map(|results| results.len())
+                .unwrap_or_default()
+            + self
+                .query_dict(&self.kanji_dict, &[query])
+                .map(|results| results.len())
+                .unwrap_or_default();
+        let converted_num = self
             .query_dict(&self.word_dict, converted)
             .map(|results| results.len())
-            .unwrap_or_default();
-        converted_results > normal_results
+            .unwrap_or_default()
+            + self
+                .query_dict(&self.name_dict, converted)
+                .map(|results| results.len())
+                .unwrap_or_default()
+            + self
+                .query_dict(&self.kanji_dict, converted)
+                .map(|results| results.len())
+                .unwrap_or_default();
+        converted_num > normal_num
     }
 
     pub fn query(&self, query: &str) {
@@ -62,7 +77,7 @@ impl<'a> QueriableDict<'a> {
             .clone()
             .map(|katakana| katakana_to_hiragana(&katakana).expect("Should be valid katakana"));
         match converted_to_hiragana {
-            None => self.query_multiple(vec![query]),
+            None => self.output_query_result(vec![query]),
             Some(hiragana) => {
                 let katakana = &converted_to_katakana.unwrap();
                 match self.worth_converting(query, &[&hiragana, &katakana]) {
@@ -71,18 +86,18 @@ impl<'a> QueriableDict<'a> {
                             "Searched for {}, you can also search for \"{}\"",
                             hiragana, query
                         );
-                        self.query_by_romaji(query).unwrap();
+                        self.output_query_by_romaji(query).unwrap();
                     }
                     false => {
                         println!("You can also search for {} or {}", hiragana, katakana);
-                        self.query_multiple(vec![query]);
+                        self.output_query_result(vec![query]);
                     }
                 }
             }
         }
     }
 
-    pub fn query_multiple(&self, queries: Vec<&str>) {
+    pub fn output_query_result(&self, queries: Vec<&str>) {
         println!();
         if let Some(results) = self.query_dict(&self.word_dict, &queries) {
             for result in results {
@@ -110,10 +125,10 @@ impl<'a> QueriableDict<'a> {
         }
     }
 
-    pub fn query_by_romaji(&self, query: &str) -> Result<()> {
+    pub fn output_query_by_romaji(&self, query: &str) -> Result<()> {
         let katakana_query = romaji_to_katakana(query)?;
         let hiragana_query = katakana_to_hiragana(&katakana_query)?;
-        self.query_multiple(vec![katakana_query.as_str(), hiragana_query.as_str()]);
+        self.output_query_result(vec![katakana_query.as_str(), hiragana_query.as_str()]);
         Ok(())
     }
 
