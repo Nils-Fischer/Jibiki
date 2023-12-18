@@ -3,6 +3,7 @@ use crate::{
     kana_utils::{katakana_to_hiragana, romaji_to_katakana},
 };
 use anyhow::Result;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 pub trait Query {
@@ -116,7 +117,7 @@ impl<'a> QueriableDict<'a> {
         Ok(())
     }
 
-    fn query_dict<D>(
+    fn query_dict<D: std::cmp::Ord>(
         &self,
         dict: &'a HashMap<&'a str, Vec<&'a D>>,
         queries: &[&'a str],
@@ -124,6 +125,7 @@ impl<'a> QueriableDict<'a> {
         let results: Vec<&D> = queries
             .iter()
             .flat_map(|query| dict.get(clean_query(query)).cloned().unwrap_or_default())
+            .sorted()
             .collect();
         match results.is_empty() {
             true => None,

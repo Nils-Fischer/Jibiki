@@ -9,8 +9,7 @@ use crate::{
 use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
+use std::{cmp::Ordering, collections::HashMap, fmt};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
@@ -87,6 +86,28 @@ impl Word {
     }
 }
 
+impl PartialEq for Word {
+    fn eq(&self, other: &Self) -> bool {
+        self.frequency.unwrap_or(self.id) == other.frequency.unwrap_or(other.id)
+    }
+}
+
+impl Eq for Word {}
+
+impl PartialOrd for Word {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Word {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.frequency
+            .unwrap_or(self.id)
+            .cmp(&other.frequency.unwrap_or(other.id))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Name {
     name: String,
@@ -150,6 +171,26 @@ impl Name {
             translations: jmnedict.meanings.clone(),
             id: jmnedict.id,
         }
+    }
+}
+
+impl PartialEq for Name {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Name {}
+
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
     }
 }
 
@@ -278,6 +319,28 @@ impl Kanji {
     }
 }
 
+impl PartialEq for Kanji {
+    fn eq(&self, other: &Self) -> bool {
+        self.frequency.unwrap_or(self.id) == other.frequency.unwrap_or(other.id)
+    }
+}
+
+impl Eq for Kanji {}
+
+impl PartialOrd for Kanji {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Kanji {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.frequency
+            .unwrap_or(self.id)
+            .cmp(&other.frequency.unwrap_or(other.id))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Radical {
     radical: String,
@@ -323,6 +386,26 @@ impl Radical {
 impl ExportPath for Radical {
     fn export_path(&self) -> String {
         RADICALS_EXPORT_PATH.to_string()
+    }
+}
+
+impl PartialEq for Radical {
+    fn eq(&self, other: &Self) -> bool {
+        self.strokes == other.strokes
+    }
+}
+
+impl Eq for Radical {}
+
+impl PartialOrd for Radical {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Radical {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.strokes.cmp(&other.strokes)
     }
 }
 

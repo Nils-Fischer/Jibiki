@@ -155,7 +155,9 @@ fn assemble_word_dicts(
             }
         })
         .map(|entry| {
-            let innocent_value = innocent_map.get(entry.vocabulary.as_str());
+            let innocent_value = innocent_map
+                .get(entry.vocabulary.as_str())
+                .or(innocent_map.get(entry.reading.as_str()));
             let kanjium_value = kanjium_map.get(entry.vocabulary.as_str());
             Word::from(entry, innocent_value, kanjium_value)
         })
