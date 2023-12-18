@@ -6,12 +6,8 @@ use composite_dictionaries::*;
 use dictionary_paths::{
     KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
 };
-use kana_utils::romaji_to_katakana;
 use query::*;
-use std::{
-    collections::HashMap,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 use structopt::StructOpt;
 
 mod basic_dictionaries;
@@ -41,11 +37,7 @@ fn read_input(input: &mut String) -> Result<Vec<&str>> {
     io::stdout().flush()?;
 
     io::stdin().read_line(input).expect("Failed to read line");
-    Ok(input
-        .trim()
-        .split_ascii_whitespace()
-        .map(|s| s.trim())
-        .collect())
+    Ok(input.split_ascii_whitespace().collect())
 }
 
 fn main() -> Result<()> {

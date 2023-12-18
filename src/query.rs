@@ -1,6 +1,6 @@
 use crate::{
     composite_dictionaries::{Kanji, Name, Radical, Word},
-    kana_utils::{katakana_to_hiragana, romaji_to_hiragana, romaji_to_katakana},
+    kana_utils::{katakana_to_hiragana, romaji_to_katakana},
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -82,17 +82,30 @@ impl<'a> QueriableDict<'a> {
     }
 
     pub fn query_multiple(&self, queries: Vec<&str>) {
-        if let Some(result) = self.query_dict(&self.word_dict, &queries) {
-            println!("{:#?}", result)
+        println!();
+        if let Some(results) = self.query_dict(&self.word_dict, &queries) {
+            for result in results {
+                println!("{}", result);
+            }
+            println!();
         }
-        if let Some(result) = self.query_dict(&self.kanji_dict, &queries) {
-            println!("{:#?}", result)
+        if let Some(results) = self.query_dict(&self.kanji_dict, &queries) {
+            for result in results {
+                println!("{}", result);
+            }
+            println!();
         }
-        if let Some(result) = self.query_dict(&self.name_dict, &queries) {
-            println!("{:#?}", result)
+        if let Some(results) = self.query_dict(&self.name_dict, &queries) {
+            for result in results {
+                println!("{}", result);
+            }
+            println!();
         }
-        if let Some(result) = self.query_dict(&self.radical_dict, &queries) {
-            println!("{:#?}", result)
+        if let Some(results) = self.query_dict(&self.radical_dict, &queries) {
+            for result in results {
+                println!("{}", result);
+            }
+            println!();
         }
     }
 

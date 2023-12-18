@@ -7,8 +7,10 @@ use crate::{
     query::Query,
 };
 use anyhow::Result;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
@@ -24,6 +26,33 @@ pub struct Word {
 impl Key<u32> for Word {
     fn key(&self) -> u32 {
         self.id
+    }
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}, {}", bold("Word:"), self.vocabulary)?;
+        writeln!(f, "{}, {}", bold("Reading:"), self.reading)?;
+        writeln!(f, "{}", bold("Meanings:"))?;
+        for (index, meaning) in self.meanings.iter().enumerate() {
+            writeln!(f, "{}. {}", index + 1, meaning)?;
+        }
+        let tags = self
+            .tags
+            .values()
+            .map(|tag| tag.description.clone())
+            .join(", ");
+        if let Some(freq) = self.frequency {
+            writeln!(f, "{}, {}", bold("Frequency"), freq)?;
+        }
+        /* if let Some(pitches) = self.pitches.clone() {
+            writeln!(f, "{:#?}", pitches)?;
+        } */
+        writeln!(f, "{}, {}", bold("ID:"), self.id)?;
+        if !tags.is_empty() {
+            writeln!(f, "{}", tags)?;
+        }
+        Ok(())
     }
 }
 
@@ -73,6 +102,28 @@ impl Key<u32> for Name {
     }
 }
 
+impl fmt::Display for Name {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{} {}", bold("Name:"), self.name)?;
+        writeln!(f, "{} {}", bold("Reading:"), self.reading)?;
+        writeln!(
+            f,
+            "{} {}",
+            bold("Translations:"),
+            self.translations.iter().join(", ")
+        )?;
+        let tags = self
+            .tags
+            .values()
+            .map(|tag| tag.description.clone())
+            .join(", ");
+        if !tags.is_empty() {
+            writeln!(f, "{}", tags)?;
+        }
+        writeln!(f, "{}, {}", bold("ID:"), self.id)
+    }
+}
+
 impl Query for Name {
     fn queries(&self) -> Vec<&str> {
         self.translations
@@ -116,6 +167,46 @@ pub struct Kanji {
     radicals: Option<Vec<String>>,
     tags: HashMap<String, Tag>,
     attributes: HashMap<String, String>,
+}
+
+impl fmt::Display for Kanji {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}, {}", bold("Kanji:"), self.kanji)?;
+        writeln!(
+            f,
+            "{}, {}",
+            bold("Meanings:"),
+            self.meanings.iter().join(", ")
+        )?;
+        writeln!(f, "{}, {}", bold("Kun:"), self.kun_yomi.iter().join("、　"))?;
+        writeln!(f, "{}, {}", bold("On:"), self.on_yomi.iter().join("、　"))?;
+        writeln!(f, "{}, {}", bold("Strokes:"), self.strokes)?;
+        if let Some(frequency) = self.frequency {
+            writeln!(f, "{}, {}", bold("Frequency:"), frequency)?;
+        }
+        if let Some(jlpt) = self.jlpt {
+            writeln!(f, "{} level N{}", bold("JLPT"), jlpt)?;
+        }
+        if let Some(grade) = self.grade {
+            writeln!(f, "Taught in {} {}", bold("grade"), grade)?;
+        }
+        if let Some(radicals) = self.radicals.clone() {
+            writeln!(f, "{}, {}", bold("Radicals:"), radicals.iter().join("、　"))?;
+        }
+        writeln!(f, "{}, {}", bold("ID:"), self.id)?;
+        let tags = self
+            .tags
+            .values()
+            .map(|tag| tag.description.clone())
+            .join(", ");
+        if !tags.is_empty() {
+            writeln!(f, "{}", tags)?;
+        }
+        for (attribute, value) in self.attributes.iter() {
+            writeln!(f, "{}, {}", bold(attribute), value)?;
+        }
+        Ok(())
+    }
 }
 
 impl Key<u32> for Kanji {
@@ -194,6 +285,19 @@ pub struct Radical {
     kanji: String,
 }
 
+impl fmt::Display for Radical {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}, {}", bold("Radical:"), self.radical)?;
+        writeln!(f, "{}, {}", bold("Strokes:"), self.strokes)?;
+        writeln!(
+            f,
+            "{}, {}",
+            bold("Part of:"),
+            self.kanji.chars().join("、　")
+        )
+    }
+}
+
 impl Query for Radical {
     fn queries(&self) -> Vec<&str> {
         vec![self.radical.as_str()]
@@ -247,4 +351,8 @@ impl CompositeDicts {
             CompositeDicts::Radicals(_) => "Radicals",
         }
     }
+}
+
+fn bold(str: &str) -> String {
+    format!("\x1b[1m{}\x1b[0m", str)
 }

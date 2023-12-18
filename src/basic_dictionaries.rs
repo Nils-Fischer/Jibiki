@@ -133,7 +133,7 @@ pub struct ParseTag {
 pub struct Tag {
     tag: String,
     category: String,
-    description: String,
+    pub description: String,
 }
 
 impl Key<String> for Tag {
