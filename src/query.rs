@@ -86,7 +86,8 @@ impl<'a> QueriableDict<'a> {
                             "Searched for {}, you can also search for \"{}\"",
                             hiragana, query
                         );
-                        self.output_query_by_romaji(query).unwrap();
+                        self.output_query_by_romaji(query)
+                            .expect("Should be valid kana");
                     }
                     false => {
                         println!("You can also search for {} or {}", hiragana, katakana);
@@ -105,7 +106,8 @@ impl<'a> QueriableDict<'a> {
             }
             println!();
         }
-        if let Some(results) = self.query_dict(&self.kanji_dict, &queries) {
+        let kanji_queries: Vec<&str> = queries.iter().flat_map(|query| query.split("")).collect();
+        if let Some(results) = self.query_dict(&self.kanji_dict, &kanji_queries) {
             for result in results {
                 println!("{}", result);
             }

@@ -71,12 +71,18 @@ fn main() -> Result<()> {
         .sorted()
         .collect();
 
-    println!("{:?}", all_chars);
-
     let words: Vec<Word> = load_vec_from_bin(WORDS_EXPORT_PATH)?;
     let kanjis: Vec<Kanji> = load_vec_from_bin(KANJIS_EXPORT_PATH)?;
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
+
+    let all_kanjis = kanjis
+        .iter()
+        .flat_map(|kanji| kanji.kanji.chars())
+        .map(|char| char as u32);
+    let max = all_kanjis.clone().max().unwrap();
+    let min = all_kanjis.clone().min().unwrap();
+    println!("min: {:X}, max: {:X}", min, max);
 
     let dict = QueriableDict::new(&words, &kanjis, &names, &radicals);
 
