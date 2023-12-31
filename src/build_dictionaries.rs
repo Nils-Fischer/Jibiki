@@ -4,19 +4,23 @@ use crate::{
     dictionary_paths::*,
 };
 use anyhow::Result;
+use core::fmt;
+use csv::ReaderBuilder;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
+    error::Error,
     fs::File,
+    path::Path,
 };
 
 pub trait FromParsed<P> {
     fn from_parsed(parsed: P, tags: Option<&HashMap<String, Tag>>) -> Self;
 }
 
-fn load_json_dicts<P, D>(paths: Vec<String>, tags: Option<HashMap<String, Tag>>) -> Result<Vec<D>>
+pub fn load_dicts<P, D>(paths: Vec<String>, tags: Option<HashMap<String, Tag>>) -> Result<Vec<D>>
 where
     P: for<'a> Deserialize<'a> + Send + Serialize,
     D: Send + FromParsed<P>,
@@ -26,8 +30,7 @@ where
         .flat_map(|path| {
             let file: File = File::open(&path)
                 .unwrap_or_else(|e| panic!("Couldn't open file: {}, reason: {}", path, e));
-            let parse_results: Vec<P> = serde_json::from_reader(file)
-                .unwrap_or_else(|e| panic!("Couldn't parse json file: {}, reason: {}", path, e));
+            let parse_results: Vec<P> = parse_file(file, &path).unwrap_or_else(|e| panic!("{}", e));
             parse_results
                 .into_iter()
                 .map(|parsed| D::from_parsed(parsed, tags.as_ref()))
@@ -35,6 +38,26 @@ where
         })
         .collect();
     Ok(dicts)
+}
+
+fn parse_file<P: for<'a> Deserialize<'a>>(file: File, path: &str) -> Result<Vec<P>> {
+    match Path::new(path).extension().and_then(|ext| ext.to_str()) {
+        Some("json") => {
+            let parse_result: Vec<P> = serde_json::from_reader(file)
+                .map_err(|e| ParsingError::new("json", path, e.to_string()))?;
+            Ok(parse_result)
+        }
+        Some("tsv") => {
+            let mut reader = ReaderBuilder::new()
+                .has_headers(false)
+                .delimiter(b'\t')
+                .from_path(path)?;
+            let parse_results: Vec<P> = reader.deserialize().collect::<Result<Vec<_>, _>>()?;
+            Ok(parse_results)
+        }
+        Some(ext) => panic!("Extension '{}' is not recognized", ext),
+        None => panic!("No signature could be extracted form file: {}", path),
+    }
 }
 
 pub trait Key<K> {
@@ -63,21 +86,21 @@ where
 
 pub fn build_composite_dicts() -> Result<()> {
     let jmdict_tags: HashMap<String, Tag> =
-        hashmap_from_dicts(load_json_dicts(jmdict_tag_paths(), None)?);
+        hashmap_from_dicts(load_dicts(jmdict_tag_paths(), None)?);
     let jmnedict_tags: HashMap<String, Tag> =
-        hashmap_from_dicts(load_json_dicts(jmnedict_tag_paths(), None)?);
+        hashmap_from_dicts(load_dicts(jmnedict_tag_paths(), None)?);
     let kanjidic_tags: HashMap<String, Tag> =
-        hashmap_from_dicts(load_json_dicts(kanjidic_tag_paths(), None)?);
+        hashmap_from_dicts(load_dicts(kanjidic_tag_paths(), None)?);
     let kanjium_tags: HashMap<String, Tag> =
-        hashmap_from_dicts(load_json_dicts(kanjium_tag_paths(), None)?);
-    let jmdicts: Vec<Jmdict> = load_json_dicts(jmdict_dict_paths(), Some(jmdict_tags))?;
-    let jmnedicts: Vec<Jmdict> = load_json_dicts(jmnedict_dict_paths(), Some(jmnedict_tags))?;
-    let kanjium: Vec<Kanjium> = load_json_dicts(kanjium_dict_paths(), Some(kanjium_tags))?;
-    let kanjidic: Vec<Kanjidic> = load_json_dicts(kanjidic_dict_paths(), Some(kanjidic_tags))?;
-    let innocent_kanji: Vec<Innocent> = load_json_dicts(innocent_kanji_dict_paths(), None)?;
-    let innocent_vocab: Vec<Innocent> = load_json_dicts(innocent_vocab_dict_paths(), None)?;
-    let krad: Vec<Krad> = load_json_dicts(krad_dict_paths(), None)?;
-    let radk: Vec<Radk> = load_json_dicts(radk_dict_paths(), None)?;
+        hashmap_from_dicts(load_dicts(kanjium_tag_paths(), None)?);
+    let jmdicts: Vec<Jmdict> = load_dicts(jmdict_dict_paths(), Some(jmdict_tags))?;
+    let jmnedicts: Vec<Jmdict> = load_dicts(jmnedict_dict_paths(), Some(jmnedict_tags))?;
+    let kanjium: Vec<Kanjium> = load_dicts(kanjium_dict_paths(), Some(kanjium_tags))?;
+    let kanjidic: Vec<Kanjidic> = load_dicts(kanjidic_dict_paths(), Some(kanjidic_tags))?;
+    let innocent_kanji: Vec<Innocent> = load_dicts(innocent_kanji_dict_paths(), None)?;
+    let innocent_vocab: Vec<Innocent> = load_dicts(innocent_vocab_dict_paths(), None)?;
+    let krad: Vec<Krad> = load_dicts(krad_dict_paths(), None)?;
+    let radk: Vec<Radk> = load_dicts(radk_dict_paths(), None)?;
     let composite_dicts: Vec<CompositeDicts> = assemble_composite_dicts(
         jmdicts,
         jmnedicts,
@@ -187,4 +210,33 @@ fn assemble_kanji_dicts(
 
 fn assemble_radical_dicts(radk: Vec<Radk>) -> Vec<Radical> {
     radk.into_iter().map(Radical::from).collect()
+}
+
+#[derive(Debug)]
+struct ParsingError {
+    extension: String,
+    path: String,
+    error: String,
+}
+
+impl ParsingError {
+    fn new(extension: &str, path: &str, error: String) -> ParsingError {
+        ParsingError {
+            extension: String::from(extension),
+            path: String::from(path),
+            error,
+        }
+    }
+}
+
+impl Error for ParsingError {}
+
+impl fmt::Display for ParsingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Could not parse {} file '{}', reason: {}",
+            self.extension, self.path, self.error
+        )
+    }
 }

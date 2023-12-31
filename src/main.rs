@@ -1,13 +1,18 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::build_composite_dicts;
+use basic_dictionaries::*;
+use build_dictionaries::{build_composite_dicts, load_dicts};
 use composite_dictionaries::*;
 use dictionary_paths::{
     KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
 };
+use itertools::Itertools;
 use query::*;
-use std::io::{self, Write};
+use std::{
+    collections::HashSet,
+    io::{self, Write},
+};
 use structopt::StructOpt;
 
 mod basic_dictionaries;
@@ -48,6 +53,25 @@ fn main() -> Result<()> {
             Err(_) => println!("Failed to rebuild all binaries!\n"),
         }
     }
+    let sentences: Vec<Sentence> = load_dicts::<ParseSentence, Sentence>(
+        vec![String::from("resources/jpn_sentences.tsv")],
+        None,
+    )?;
+    let all_sentences = sentences
+        .into_iter()
+        .map(|sentence| sentence.sentence)
+        .collect::<Vec<String>>();
+    let all_chars: Vec<char> = all_sentences
+        .into_iter()
+        .fold(HashSet::new(), |mut set, sentence| {
+            set.extend(sentence.chars());
+            set
+        })
+        .into_iter()
+        .sorted()
+        .collect();
+
+    println!("{:?}", all_chars);
 
     let words: Vec<Word> = load_vec_from_bin(WORDS_EXPORT_PATH)?;
     let kanjis: Vec<Kanji> = load_vec_from_bin(KANJIS_EXPORT_PATH)?;
