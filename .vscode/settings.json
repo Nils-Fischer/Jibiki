@@ -1,4 +1,7 @@
 {
   "rust-analyzer.linkedProjects": ["./Cargo.toml", "./Cargo.toml"],
-  "cSpell.words": ["Kanjidic"]
+  "cSpell.words": ["Kanjidic"],
+  "files.watcherExclude": {
+    "**/target": true
+  }
 }

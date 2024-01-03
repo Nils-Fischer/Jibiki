@@ -1,0 +1,3 @@
+2024.01.03 21:45:51 INFO  Started: Metals version 1.2.0 in folders '/media/windows/Code/Kanji_Project/jibiki' for client Visual Studio Code 1.85.1.
+2024.01.03 21:45:51 WARN  Build server is not auto-connectable.
+2024.01.03 21:45:51 WARN  no build tool detected in workspace '/media/windows/Code/Kanji_Project/jibiki'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. 

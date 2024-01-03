@@ -18,6 +18,7 @@ use structopt::StructOpt;
 mod basic_dictionaries;
 mod build_dictionaries;
 mod composite_dictionaries;
+mod conjugation_utils;
 mod dictionary_paths;
 mod kana_utils;
 mod load_dictionaries;
@@ -75,14 +76,6 @@ fn main() -> Result<()> {
     let kanjis: Vec<Kanji> = load_vec_from_bin(KANJIS_EXPORT_PATH)?;
     let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
     let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
-
-    let all_kanjis = kanjis
-        .iter()
-        .flat_map(|kanji| kanji.kanji.chars())
-        .map(|char| char as u32);
-    let max = all_kanjis.clone().max().unwrap();
-    let min = all_kanjis.clone().min().unwrap();
-    println!("min: {:X}, max: {:X}", min, max);
 
     let dict = QueriableDict::new(&words, &kanjis, &names, &radicals);
 

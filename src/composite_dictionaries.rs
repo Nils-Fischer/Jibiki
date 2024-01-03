@@ -62,6 +62,7 @@ impl Query for Word {
             .flat_map(|meaning| meaning.split(", "))
             .chain(std::iter::once(self.vocabulary.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
+            .chain(self.tags.keys().map(|key| key.as_str()))
             .collect()
     }
 }

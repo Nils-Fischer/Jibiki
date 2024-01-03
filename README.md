@@ -12,3 +12,4 @@
 - Furigana
 - Order meanings
 - Properly display pitches
+- Conjugations for Nidan and Yodan verbs
