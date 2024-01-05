@@ -1,6 +1,6 @@
 use crate::{
     composite_dictionaries::{Kanji, Name, Radical, Word},
-    kana_utils::{katakana_to_hiragana, romaji_to_katakana},
+    kana_utils::{katakana_to_hiragana, romaji_to_katakana, KANJI_CHARS},
 };
 use anyhow::Result;
 use itertools::Itertools;
@@ -106,7 +106,11 @@ impl<'a> QueriableDict<'a> {
             }
             println!();
         }
-        let kanji_queries: Vec<&str> = queries.iter().flat_map(|query| query.split("")).collect();
+        let kanji_queries: Vec<&str> = queries
+            .iter()
+            .flat_map(|query| query.split(""))
+            .filter(|char| KANJI_CHARS.is_match(char))
+            .collect();
         if let Some(results) = self.query_dict(&self.kanji_dict, &kanji_queries) {
             for result in results {
                 println!("{}", result);

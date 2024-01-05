@@ -1,28 +1,59 @@
-fn generate_godan_conjugations(verb: &str, category: &str) -> String {
-    match category {
-        // Ichidan
-        "v1" => todo!(),   // ichidan verb
-        "v1-s" => todo!(), // ichidan verb
-        // Godan
-        "v5r" => todo!(),   // ru-ending
-        "v5r-i" => todo!(), // ru-ending (irregular)
-        "v5k" => todo!(),   // ku-ending
-        "v5k-s" => todo!(), // iku/yuku (special case)
-        "v5n" => todo!(),   // nu-ending
-        "v5m" => todo!(),   // mu-ending
-        "v5aru" => todo!(), // aru-ending (special class)
-        "v5b" => todo!(),   // bu-ending
-        "v5s" => todo!(),   // su-ending
-        "v5u" => todo!(),   // u-ending
-        "v5u-s" => todo!(), // u-ending (special class)
-        "v5g" => todo!(),   // gu-ending
-        "v5t" => todo!(),   // tsu-ending
-        // Irregular
-        "vk" => todo!(),   // kuru verbs
-        "vs-i" => todo!(), // suru nouns
-        "vs-s" => todo!(), // suru nouns (special class)
-        "vz" => todo!(),   // zuru verbs
-        _ => panic!("format '{}' unknown", category),
+use lazy_static::lazy_static;
+use std::collections::HashSet;
+
+lazy_static! {
+    static ref VERB_TAGS: HashSet<String> = vec![
+        String::from("v1"),
+        String::from("v1-s"),
+        String::from("vk"),
+        String::from("v5b"),
+        String::from("v5g"),
+        String::from("v5k"),
+        String::from("v5k-s"),
+        String::from("v5m"),
+        String::from("v5n"),
+        String::from("v5r"),
+        String::from("v5aru"),
+        String::from("v5r-i"),
+        String::from("v5s"),
+        String::from("v5t"),
+        String::from("v5u"),
+        String::from("v5u-s"),
+        String::from("vs-i"),
+        String::from("vs-s"),
+        String::from("vz"),
+    ]
+    .into_iter()
+    .collect();
+}
+pub fn generate_conjugations(verb: &str, tags: Vec<&String>) -> Vec<String> {
+    if !tags.iter().any(|s| s.starts_with('v')) {
+        Vec::new()
+    } else if let Some(category) = tags.into_iter().find(|&tag| VERB_TAGS.contains(tag)) {
+        vec![
+            negative(verb, category),
+            past(verb, category),
+            past_negative(verb, category),
+            te_form(verb, category),
+            tai_form(verb, category),
+            volitional(verb, category),
+            imperative(verb, category),
+            passive(verb, category),
+            conditional(verb, category),
+            provisional_conditional(verb, category),
+            causative(verb, category),
+            potential(verb, category),
+            polite_present(verb, category),
+            polite_negative(verb, category),
+            polite_past(verb, category),
+            polite_past_negative(verb, category),
+            polite_te_form(verb, category),
+            polite_volitional(verb, category),
+            polite_imperative(verb, category),
+            polite_passive(verb, category),
+        ]
+    } else {
+        Vec::new()
     }
 }
 
@@ -89,7 +120,7 @@ fn past_negative(verb: &str, category: &str) -> String {
 fn te_form(verb: &str, category: &str) -> String {
     let (ending, suffix_len) = match category {
         "v1" | "v1-s" => ("て", 1),
-        "v5aru" | "v5k-s" | "v5r" | "v5r_i" | "v5t" | "v5u" => ("って", 1),
+        "v5aru" | "v5k-s" | "v5r" | "v5r-i" | "v5t" | "v5u" => ("って", 1),
         "v5b" | "v5m" | "v5n" => ("んで", 1),
         "v5g" => ("いで", 1),
         "v5k" => ("いて", 1),

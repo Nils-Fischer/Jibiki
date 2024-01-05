@@ -108,10 +108,7 @@ pub fn romaji_to_hiragana(word: &str) -> Result<String> {
 
 #[allow(dead_code)]
 pub fn katakana_to_hiragana(word: &str) -> Result<String> {
-    if !word
-        .chars()
-        .all(|c| (0x3041..=0x30fe).contains(&(c as u16)))
-    {
+    if !word.chars().all(|c| HIRAGANA_CHARS.contains(&(c as u16))) {
         return Err(NotConvertibleError::new(word).into());
     }
     let as_u16: Vec<u16> = word.chars().map(|char| char as u16 - 0x60).collect();
@@ -206,11 +203,6 @@ mod tests {
         assert_eq!(katakana_to_hiragana("フジ").unwrap(), "ふじ");
     }
 }
-
-#[allow(dead_code)]
-const SOUKUN_CHARS: [u8; 19] = [
-    98, 99, 100, 102, 103, 104, 106, 107, 108, 109, 112, 114, 115, 116, 118, 119, 120, 121, 122,
-];
 
 lazy_static! {
     static ref KANA_TO_ENGLISH: HashMap<char, String> = {
@@ -636,3 +628,19 @@ lazy_static! {
             .collect()
     };
 }
+
+const SOUKUN_CHARS: [u8; 19] = [
+    98, 99, 100, 102, 103, 104, 106, 107, 108, 109, 112, 114, 115, 116, 118, 119, 120, 121, 122,
+];
+
+const HIRAGANA_CHARS: std::ops::RangeInclusive<u16> = 0x3041..=0x30fe;
+
+#[allow(dead_code)]
+const KATAKANA_CHARS: std::ops::RangeInclusive<u16> = 0x30A0..=0x30FF;
+
+lazy_static! {
+    pub static ref KANJI_CHARS: Regex = Regex::new(r"\p{Han}").unwrap();
+}
+
+#[allow(dead_code)]
+const KANJI_RADICALS: std::ops::RangeInclusive<u16> = 0x2E80..=0x2FD5;

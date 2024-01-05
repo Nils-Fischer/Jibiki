@@ -1,6 +1,7 @@
 use crate::{
     basic_dictionaries::*,
     build_dictionaries::{export_dicts_as_bin, Key},
+    conjugation_utils::generate_conjugations,
     dictionary_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
@@ -20,6 +21,7 @@ pub struct Word {
     id: u32,
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,
+    conjugations: Vec<String>,
 }
 
 impl Key<u32> for Word {
@@ -36,6 +38,7 @@ impl fmt::Display for Word {
         for (index, meaning) in self.meanings.iter().enumerate() {
             writeln!(f, "{}. {}", index + 1, meaning)?;
         }
+        writeln!(f, "{}", self.conjugations.join("、"))?;
         let tags = self
             .tags
             .values()
@@ -63,6 +66,7 @@ impl Query for Word {
             .chain(std::iter::once(self.vocabulary.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
             .chain(self.tags.keys().map(|key| key.as_str()))
+            .chain(self.conjugations.iter().map(|entry| entry.as_ref()))
             .collect()
     }
 }
@@ -83,6 +87,7 @@ impl Word {
             id: jmdict.id,
             frequency: innocent.map(|i| i.frequency),
             pitches: kanjium.map(|k| k.pitch.pitches.clone()),
+            conjugations: generate_conjugations(&jmdict.vocabulary, jmdict.tags.keys().collect()),
         }
     }
 }
@@ -220,8 +225,8 @@ impl fmt::Display for Kanji {
             bold("Meanings:"),
             self.meanings.iter().join(", ")
         )?;
-        writeln!(f, "{} {}", bold("Kun:"), self.kun_yomi.iter().join("、　"))?;
-        writeln!(f, "{} {}", bold("On:"), self.on_yomi.iter().join("、　"))?;
+        writeln!(f, "{} {}", bold("Kun:"), self.kun_yomi.iter().join("、"))?;
+        writeln!(f, "{} {}", bold("On:"), self.on_yomi.iter().join("、"))?;
         writeln!(f, "{} {}", bold("Strokes:"), self.strokes)?;
         if let Some(frequency) = self.frequency {
             writeln!(f, "{}, {}", bold("Frequency:"), frequency)?;
@@ -233,7 +238,7 @@ impl fmt::Display for Kanji {
             writeln!(f, "Taught in {} {}", bold("grade"), grade)?;
         }
         if let Some(radicals) = self.radicals.clone() {
-            writeln!(f, "{} {}", bold("Radicals:"), radicals.iter().join("、　"))?;
+            writeln!(f, "{} {}", bold("Radicals:"), radicals.iter().join("、"))?;
         }
         let tags = self
             .tags
@@ -353,12 +358,7 @@ impl fmt::Display for Radical {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{} {}", bold("Radical:"), self.radical)?;
         writeln!(f, "{} {}", bold("Strokes:"), self.strokes)?;
-        writeln!(
-            f,
-            "{}, {}",
-            bold("Part of:"),
-            self.kanji.chars().join("、　")
-        )
+        writeln!(f, "{}, {}", bold("Part of:"), self.kanji.chars().join("、"))
     }
 }
 
