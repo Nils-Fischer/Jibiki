@@ -22,6 +22,7 @@ pub struct Word {
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,
     conjugations: Vec<String>,
+    reading_conjugations: Vec<String>,
 }
 
 impl Key<u32> for Word {
@@ -65,8 +66,9 @@ impl Query for Word {
             .flat_map(|meaning| meaning.split(", "))
             .chain(std::iter::once(self.vocabulary.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
-            .chain(self.tags.keys().map(|key| key.as_str()))
-            .chain(self.conjugations.iter().map(|entry| entry.as_ref()))
+            .chain(self.tags.keys().map(AsRef::as_ref))
+            .chain(self.conjugations.iter().map(AsRef::as_ref))
+            .chain(self.reading_conjugations.iter().map(AsRef::as_ref))
             .collect()
     }
 }
@@ -88,6 +90,10 @@ impl Word {
             frequency: innocent.map(|i| i.frequency),
             pitches: kanjium.map(|k| k.pitch.pitches.clone()),
             conjugations: generate_conjugations(&jmdict.vocabulary, jmdict.tags.keys().collect()),
+            reading_conjugations: generate_conjugations(
+                &jmdict.reading,
+                jmdict.tags.keys().collect(),
+            ),
         }
     }
 }
@@ -155,7 +161,7 @@ impl Query for Name {
     fn queries(&self) -> Vec<&str> {
         self.translations
             .iter()
-            .map(|str| str.as_str())
+            .map(AsRef::as_ref)
             .chain(std::iter::once(self.name.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
             .collect()
@@ -266,10 +272,10 @@ impl Query for Kanji {
     fn queries(&self) -> Vec<&str> {
         self.meanings
             .iter()
-            .map(|str| str.as_str())
+            .map(AsRef::as_ref)
             .chain(std::iter::once(self.kanji.as_str()))
-            .chain(self.kun_yomi.iter().map(|str| str.as_str()))
-            .chain(self.on_yomi.iter().map(|str| str.as_str()))
+            .chain(self.kun_yomi.iter().map(AsRef::as_ref))
+            .chain(self.on_yomi.iter().map(AsRef::as_ref))
             .collect()
     }
 }
