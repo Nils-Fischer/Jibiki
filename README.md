@@ -2,9 +2,10 @@
 
 ## TO-DO
 
+- fix Conjugation of vk verbs
+- Fix binary size
+- Conjugations for adjectives
 - Example Sentences
-- Provide conjugations
-- Other forms
 - Audio
 - Similar Kanji / Parts
 - Stroke order

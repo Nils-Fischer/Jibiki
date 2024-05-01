@@ -1,7 +1,7 @@
 use crate::{
     basic_dictionaries::*,
     build_dictionaries::{export_dicts_as_bin, Key},
-    conjugation_utils::generate_conjugations,
+    conjugation_utils::{generate_all_verb_conjugations, VerbConjugation},
     dictionary_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
@@ -21,8 +21,7 @@ pub struct Word {
     id: u32,
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,
-    conjugations: Vec<String>,
-    reading_conjugations: Vec<String>,
+    conjugations: Vec<VerbConjugation>,
 }
 
 impl Key<u32> for Word {
@@ -39,7 +38,14 @@ impl fmt::Display for Word {
         for (index, meaning) in self.meanings.iter().enumerate() {
             writeln!(f, "{}. {}", index + 1, meaning)?;
         }
-        writeln!(f, "{}", self.conjugations.join("、"))?;
+        writeln!(
+            f,
+            "{}",
+            self.conjugations
+                .iter()
+                .map(|conj| &conj.kanji_form)
+                .join("、")
+        )?;
         let tags = self
             .tags
             .values()
@@ -67,8 +73,8 @@ impl Query for Word {
             .chain(std::iter::once(self.vocabulary.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
             .chain(self.tags.keys().map(AsRef::as_ref))
-            .chain(self.conjugations.iter().map(AsRef::as_ref))
-            .chain(self.reading_conjugations.iter().map(AsRef::as_ref))
+            .chain(self.conjugations.iter().map(|con| &*con.kana_form))
+            .chain(self.conjugations.iter().map(|con| &*con.kanji_form))
             .collect()
     }
 }
@@ -89,8 +95,8 @@ impl Word {
             id: jmdict.id,
             frequency: innocent.map(|i| i.frequency),
             pitches: kanjium.map(|k| k.pitch.pitches.clone()),
-            conjugations: generate_conjugations(&jmdict.vocabulary, jmdict.tags.keys().collect()),
-            reading_conjugations: generate_conjugations(
+            conjugations: generate_all_verb_conjugations(
+                &jmdict.vocabulary,
                 &jmdict.reading,
                 jmdict.tags.keys().collect(),
             ),
