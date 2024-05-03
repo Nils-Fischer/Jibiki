@@ -4,24 +4,25 @@ use std::collections::HashSet;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GrammaticalForm {
+    Adverbial,
     Causative,
     Conditional,
     Desire,
     Imperative,
+    MasuStem,
     Negative,
     Passive,
     Past,
-    Plain,
     Polite,
     Potential,
+    ProvisionalConditional,
     Short,
     TeForm,
     Volitional,
-    ProvisionalConditional,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VerbConjugation {
+pub struct ConjugatedWord {
     pub kanji_form: String,
     pub kana_form: String,
     pub grammatical_forms: Vec<GrammaticalForm>,
@@ -31,78 +32,83 @@ pub fn generate_all_verb_conjugations(
     verb_kanji_form: &str,
     verb_reading_form: &str,
     tags: Vec<&String>,
-) -> Vec<VerbConjugation> {
+) -> Option<Vec<ConjugatedWord>> {
     if !tags.iter().any(|s| s.starts_with('v')) || verb_kanji_form.is_empty() {
-        Vec::new()
+        None
     } else if let Some(category) = tags.into_iter().find(|&tag| VERB_TAGS.contains(tag)) {
         let verb_kana_form = match verb_reading_form {
             "" => verb_kanji_form,
             _ => verb_reading_form,
         };
-        vec![
+        Some(vec![
             // plain forms
-            VerbConjugation {
+            ConjugatedWord {
+                kanji_form: masu_stem(verb_kanji_form, category, false),
+                kana_form: masu_stem(verb_kana_form, category, true),
+                grammatical_forms: vec![GrammaticalForm::MasuStem],
+            },
+            ConjugatedWord {
                 kanji_form: causative(verb_kanji_form, category, false),
                 kana_form: causative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive(verb_kanji_form, category, false),
                 kana_form: causative_passive(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::Passive],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_short(verb_kanji_form, category, false),
                 kana_form: causative_short(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::Short],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: conditional(verb_kanji_form, category, false),
                 kana_form: conditional(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Conditional],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: desire(verb_kanji_form, category, false),
                 kana_form: desire(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Desire],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: imperative(verb_kanji_form, category, false),
                 kana_form: imperative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Imperative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive(verb_kanji_form, category, false),
                 kana_form: passive(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Passive],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential(verb_kanji_form, category, false),
                 kana_form: potential(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Potential],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: provisional_conditional(verb_kanji_form, category, false),
                 kana_form: provisional_conditional(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::ProvisionalConditional],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: volitional(verb_kanji_form, category, false),
                 kana_form: volitional(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Volitional],
             },
             // Negative forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: negative(verb_kanji_form, category, false),
                 kana_form: negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_negative(verb_kanji_form, category, false),
                 kana_form: causative_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_negative(verb_kanji_form, category, false),
                 kana_form: causative_passive_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -111,43 +117,43 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: conditional_negative(verb_kanji_form, category, false),
                 kana_form: conditional_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Conditional, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: desire_negative(verb_kanji_form, category, false),
                 kana_form: desire_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Desire, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: imperative_negative(verb_kanji_form, category, false),
                 kana_form: imperative_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Imperative, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_negative(verb_kanji_form, category, false),
                 kana_form: passive_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Passive, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_negative(verb_kanji_form, category, false),
                 kana_form: potential_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Potential, GrammaticalForm::Negative],
             },
             // Past forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: past(verb_kanji_form, category, false),
                 kana_form: past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Past],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_past(verb_kanji_form, category, false),
                 kana_form: causative_past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::Past],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_past(verb_kanji_form, category, false),
                 kana_form: causative_passive_past(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -156,28 +162,28 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Past,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: desire_past(verb_kanji_form, category, false),
                 kana_form: desire_past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Desire, GrammaticalForm::Past],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_past(verb_kanji_form, category, false),
                 kana_form: passive_past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Passive, GrammaticalForm::Past],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_past(verb_kanji_form, category, false),
                 kana_form: potential_past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Potential, GrammaticalForm::Past],
             },
             // Past negative forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: past_negative(verb_kanji_form, category, false),
                 kana_form: past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Past, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_past_negative(verb_kanji_form, category, false),
                 kana_form: causative_past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -186,7 +192,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_past_negative(verb_kanji_form, category, false),
                 kana_form: causative_passive_past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -196,7 +202,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: desire_past_negative(verb_kanji_form, category, false),
                 kana_form: desire_past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -205,7 +211,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_past_negative(verb_kanji_form, category, false),
                 kana_form: passive_past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -214,7 +220,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_past_negative(verb_kanji_form, category, false),
                 kana_form: potential_past_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -224,17 +230,17 @@ pub fn generate_all_verb_conjugations(
                 ],
             },
             // Te-forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: te_form(verb_kanji_form, category, false),
                 kana_form: te_form(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::TeForm],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_te(verb_kanji_form, category, false),
                 kana_form: causative_te(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::TeForm],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_te(verb_kanji_form, category, false),
                 kana_form: causative_passive_te(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -243,28 +249,28 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::TeForm,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_te(verb_kanji_form, category, false),
                 kana_form: passive_te(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Passive, GrammaticalForm::TeForm],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_te(verb_kanji_form, category, false),
                 kana_form: potential_te(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Potential, GrammaticalForm::TeForm],
             },
             // Polite forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: polite(verb_kanji_form, category, false),
                 kana_form: polite(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Polite],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_polite(verb_kanji_form, category, false),
                 kana_form: causative_polite(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Causative, GrammaticalForm::Polite],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_polite(verb_kanji_form, category, false),
                 kana_form: causative_passive_polite(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -273,28 +279,28 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Polite,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_polite(verb_kanji_form, category, false),
                 kana_form: passive_polite(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Passive, GrammaticalForm::Polite],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_polite(verb_kanji_form, category, false),
                 kana_form: potential_polite(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Potential, GrammaticalForm::Polite],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: volitional_polite(verb_kanji_form, category, false),
                 kana_form: volitional_polite(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Volitional, GrammaticalForm::Polite],
             },
             // Polite negative forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: polite_negative(verb_kanji_form, category, false),
                 kana_form: polite_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Polite, GrammaticalForm::Negative],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_polite_negative(verb_kanji_form, category, false),
                 kana_form: causative_polite_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -303,7 +309,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_polite_negative(verb_kanji_form, category, false),
                 kana_form: causative_passive_polite_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -313,7 +319,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_polite_negative(verb_kanji_form, category, false),
                 kana_form: passive_polite_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -322,7 +328,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Negative,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_polite_negative(verb_kanji_form, category, false),
                 kana_form: potential_polite_negative(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -332,12 +338,12 @@ pub fn generate_all_verb_conjugations(
                 ],
             },
             // Polite past forms
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: polite_past(verb_kanji_form, category, false),
                 kana_form: polite_past(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Polite, GrammaticalForm::Past],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_polite_past(verb_kanji_form, category, false),
                 kana_form: causative_polite_past(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -346,7 +352,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Past,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: causative_passive_polite_past(verb_kanji_form, category, false),
                 kana_form: causative_passive_polite_past(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -356,7 +362,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Past,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: passive_polite_past(verb_kanji_form, category, false),
                 kana_form: passive_polite_past(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -365,7 +371,7 @@ pub fn generate_all_verb_conjugations(
                     GrammaticalForm::Past,
                 ],
             },
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: potential_polite_past(verb_kanji_form, category, false),
                 kana_form: potential_polite_past(verb_kana_form, category, true),
                 grammatical_forms: vec![
@@ -375,14 +381,14 @@ pub fn generate_all_verb_conjugations(
                 ],
             },
             // Polite te-form
-            VerbConjugation {
+            ConjugatedWord {
                 kanji_form: polite_te_form(verb_kanji_form, category, false),
                 kana_form: polite_te_form(verb_kana_form, category, true),
                 grammatical_forms: vec![GrammaticalForm::Polite, GrammaticalForm::TeForm],
             },
-        ]
+        ])
     } else {
-        Vec::new()
+        None
     }
 }
 

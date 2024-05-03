@@ -2,9 +2,7 @@
 
 ## TO-DO
 
-- fix Conjugation of vk verbs
 - Fix binary size
-- Conjugations for adjectives
 - Example Sentences
 - Audio
 - Similar Kanji / Parts

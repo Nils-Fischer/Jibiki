@@ -1,11 +1,12 @@
 use crate::{
+    adjective_conjugation_utils::generate_all_adjective_conjugations,
     basic_dictionaries::*,
     build_dictionaries::{export_dicts_as_bin, Key},
-    conjugation_utils::{generate_all_verb_conjugations, VerbConjugation},
     dictionary_paths::{
         ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
     },
     query::Query,
+    verb_conjugation_utils::{generate_all_verb_conjugations, ConjugatedWord},
 };
 use anyhow::Result;
 use itertools::Itertools;
@@ -21,7 +22,7 @@ pub struct Word {
     id: u32,
     frequency: Option<u32>,
     pitches: Option<Vec<Pitches>>,
-    conjugations: Vec<VerbConjugation>,
+    conjugations: Vec<ConjugatedWord>,
 }
 
 impl Key<u32> for Word {
@@ -40,7 +41,8 @@ impl fmt::Display for Word {
         }
         writeln!(
             f,
-            "{}",
+            "{} {}",
+            bold("Conjugations:"),
             self.conjugations
                 .iter()
                 .map(|conj| &conj.kanji_form)
@@ -95,11 +97,19 @@ impl Word {
             id: jmdict.id,
             frequency: innocent.map(|i| i.frequency),
             pitches: kanjium.map(|k| k.pitch.pitches.clone()),
-            conjugations: generate_all_verb_conjugations(
-                &jmdict.vocabulary,
-                &jmdict.reading,
-                jmdict.tags.keys().collect(),
-            ),
+            conjugations: {
+                generate_all_verb_conjugations(
+                    &jmdict.vocabulary,
+                    &jmdict.reading,
+                    jmdict.tags.keys().collect(),
+                )
+                .or(generate_all_adjective_conjugations(
+                    &jmdict.vocabulary,
+                    &jmdict.reading,
+                    jmdict.tags.keys().collect(),
+                ))
+                .unwrap_or_default()
+            },
         }
     }
 }

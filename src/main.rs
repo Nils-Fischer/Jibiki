@@ -15,14 +15,15 @@ use std::{
 };
 use structopt::StructOpt;
 
+mod adjective_conjugation_utils;
 mod basic_dictionaries;
 mod build_dictionaries;
 mod composite_dictionaries;
-mod conjugation_utils;
 mod dictionary_paths;
 mod kana_utils;
 mod load_dictionaries;
 mod query;
+mod verb_conjugation_utils;
 
 #[derive(StructOpt)]
 #[structopt(
