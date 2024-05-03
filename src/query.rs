@@ -71,40 +71,47 @@ impl<'a> QueriableDict<'a> {
         converted_num > normal_num
     }
 
-    pub fn query(&self, query: &str) {
+    pub fn query(&self, query: &str) -> String {
         let converted_to_katakana = romaji_to_katakana(query).ok();
         let converted_to_hiragana = converted_to_katakana
             .clone()
             .map(|katakana| katakana_to_hiragana(&katakana).expect("Should be valid katakana"));
         match converted_to_hiragana {
-            None => self.output_query_result(vec![query]),
+            None => self.generate_query_result(vec![query]),
             Some(hiragana) => {
                 let katakana = &converted_to_katakana.unwrap();
                 match self.worth_converting(query, &[&hiragana, &katakana]) {
                     true => {
-                        println!(
-                            "Searched for {}, you can also search for \"{}\"",
-                            hiragana, query
-                        );
-                        self.output_query_by_romaji(query)
-                            .expect("Should be valid kana");
+                        format!(
+                            "Searched for {}, you can also search for \"{}\"\n{}",
+                            hiragana,
+                            query,
+                            self.generate_romaji_query_result(query)
+                                .expect("Should be valid kana")
+                        )
                     }
                     false => {
-                        println!("You can also search for {} or {}", hiragana, katakana);
-                        self.output_query_result(vec![query]);
+                        format!(
+                            "You can also search for {} or {}\n{}",
+                            hiragana,
+                            katakana,
+                            self.generate_query_result(vec![query])
+                        )
                     }
                 }
             }
         }
     }
 
-    pub fn output_query_result(&self, queries: Vec<&str>) {
-        println!();
+    pub fn generate_query_result(&self, queries: Vec<&str>) -> String {
+        let mut output = String::new();
+
+        output.push('\n');
         if let Some(results) = self.query_dict(&self.word_dict, &queries) {
             for result in results {
-                println!("{}", result);
+                output.push_str(&format!("{}\n", result)); // Add each result to the output String
             }
-            println!();
+            output.push('\n');
         }
         let kanji_queries: Vec<&str> = queries
             .iter()
@@ -113,29 +120,29 @@ impl<'a> QueriableDict<'a> {
             .collect();
         if let Some(results) = self.query_dict(&self.kanji_dict, &kanji_queries) {
             for result in results {
-                println!("{}", result);
+                output.push_str(&format!("{}\n", result));
             }
-            println!();
+            output.push('\n');
         }
         if let Some(results) = self.query_dict(&self.name_dict, &queries) {
             for result in results {
-                println!("{}", result);
+                output.push_str(&format!("{}\n", result));
             }
-            println!();
+            output.push('\n');
         }
         if let Some(results) = self.query_dict(&self.radical_dict, &queries) {
             for result in results {
-                println!("{}", result);
+                output.push_str(&format!("{}\n", result));
             }
-            println!();
+            output.push('\n');
         }
+        output
     }
 
-    pub fn output_query_by_romaji(&self, query: &str) -> Result<()> {
+    pub fn generate_romaji_query_result(&self, query: &str) -> Result<String> {
         let katakana_query = romaji_to_katakana(query)?;
         let hiragana_query = katakana_to_hiragana(&katakana_query)?;
-        self.output_query_result(vec![katakana_query.as_str(), hiragana_query.as_str()]);
-        Ok(())
+        Ok(self.generate_query_result(vec![katakana_query.as_str(), hiragana_query.as_str()]))
     }
 
     fn query_dict<D: std::cmp::Ord>(

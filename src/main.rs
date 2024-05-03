@@ -85,13 +85,13 @@ fn main() -> Result<()> {
             let empty_str = &mut String::new();
             let queries: Vec<&str> = read_input(empty_str)?;
             for query in queries {
-                dict.query(query)
+                println!("{}", dict.query(query));
             }
         }
     } else {
         for arg in opt.args {
             let query = arg.as_str();
-            dict.query(query)
+            println!("{}", dict.query(query));
         }
     }
     Ok(())
