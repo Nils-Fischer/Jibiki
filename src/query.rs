@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use itertools::Itertools;
+use regex::Regex;
 use std::collections::HashMap;
 
 pub trait Query {
@@ -71,22 +72,35 @@ impl<'a> QueriableDict<'a> {
         converted_num > normal_num
     }
 
-    pub fn query(&self, query: &str) -> String {
-        let converted_to_katakana = romaji_to_katakana(query).ok();
+    fn extract_flags(&self, query: &str) -> (String, Vec<String>) {
+        let pattern = Regex::new(r"#(kanji|word|name|radical)").unwrap();
+        let flags: Vec<String> = pattern
+            .find_iter(query)
+            .map(|f| f.as_str().to_string())
+            .collect();
+        let cleaned_string: String = pattern.replace_all(query, "").trim().to_string();
+        (cleaned_string, flags)
+    }
+
+    pub fn query(&self, raw_query: &str) -> String {
+        let (query, flags) = self.extract_flags(&raw_query.to_lowercase());
+        println!("{}", query);
+        println!("{:?}", flags);
+        let converted_to_katakana = romaji_to_katakana(&query).ok();
         let converted_to_hiragana = converted_to_katakana
             .clone()
             .map(|katakana| katakana_to_hiragana(&katakana).expect("Should be valid katakana"));
         match converted_to_hiragana {
-            None => self.generate_query_result(vec![query]),
+            None => self.generate_query_result(vec![&query], &flags),
             Some(hiragana) => {
                 let katakana = &converted_to_katakana.unwrap();
-                match self.worth_converting(query, &[&hiragana, &katakana]) {
+                match self.worth_converting(&query, &[&hiragana, &katakana]) {
                     true => {
                         format!(
                             "Searched for {}, you can also search for \"{}\"\n{}",
                             hiragana,
                             query,
-                            self.generate_romaji_query_result(query)
+                            self.generate_romaji_query_result(&query, &flags)
                                 .expect("Should be valid kana")
                         )
                     }
@@ -95,7 +109,7 @@ impl<'a> QueriableDict<'a> {
                             "You can also search for {} or {}\n{}",
                             hiragana,
                             katakana,
-                            self.generate_query_result(vec![query])
+                            self.generate_query_result(vec![&query], &flags)
                         )
                     }
                 }
@@ -103,46 +117,56 @@ impl<'a> QueriableDict<'a> {
         }
     }
 
-    pub fn generate_query_result(&self, queries: Vec<&str>) -> String {
+    pub fn generate_query_result(&self, queries: Vec<&str>, flags: &[String]) -> String {
         let mut output = String::new();
-
         output.push('\n');
-        if let Some(results) = self.query_dict(&self.word_dict, &queries) {
-            for result in results {
-                output.push_str(&format!("{}\n", result)); // Add each result to the output String
+        if flags.is_empty() || flags.contains(&"#word".to_string()) {
+            if let Some(results) = self.query_dict(&self.word_dict, &queries) {
+                for result in results {
+                    output.push_str(&format!("{}\n", result));
+                }
+                output.push('\n');
             }
-            output.push('\n');
         }
-        let kanji_queries: Vec<&str> = queries
-            .iter()
-            .flat_map(|query| query.split(""))
-            .filter(|char| KANJI_CHARS.is_match(char))
-            .collect();
-        if let Some(results) = self.query_dict(&self.kanji_dict, &kanji_queries) {
-            for result in results {
-                output.push_str(&format!("{}\n", result));
+        if flags.is_empty() || flags.contains(&"#kanji".to_string()) {
+            let kanji_queries: Vec<&str> = queries
+                .iter()
+                .flat_map(|query| query.split(""))
+                .filter(|char| KANJI_CHARS.is_match(char))
+                .collect();
+            if let Some(results) = self.query_dict(&self.kanji_dict, &kanji_queries) {
+                for result in results {
+                    output.push_str(&format!("{}\n", result));
+                }
+                output.push('\n');
             }
-            output.push('\n');
         }
-        if let Some(results) = self.query_dict(&self.name_dict, &queries) {
-            for result in results {
-                output.push_str(&format!("{}\n", result));
+        if flags.is_empty() || flags.contains(&"#name".to_string()) {
+            if let Some(results) = self.query_dict(&self.name_dict, &queries) {
+                for result in results {
+                    output.push_str(&format!("{}\n", result));
+                }
+                output.push('\n');
             }
-            output.push('\n');
         }
-        if let Some(results) = self.query_dict(&self.radical_dict, &queries) {
-            for result in results {
-                output.push_str(&format!("{}\n", result));
+        if flags.is_empty() || flags.contains(&"#radical".to_string()) {
+            if let Some(results) = self.query_dict(&self.radical_dict, &queries) {
+                for result in results {
+                    output.push_str(&format!("{}\n", result));
+                }
+                output.push('\n');
             }
-            output.push('\n');
         }
         output
     }
 
-    pub fn generate_romaji_query_result(&self, query: &str) -> Result<String> {
+    pub fn generate_romaji_query_result(&self, query: &str, flags: &Vec<String>) -> Result<String> {
         let katakana_query = romaji_to_katakana(query)?;
         let hiragana_query = katakana_to_hiragana(&katakana_query)?;
-        Ok(self.generate_query_result(vec![katakana_query.as_str(), hiragana_query.as_str()]))
+        Ok(self.generate_query_result(
+            vec![katakana_query.as_str(), hiragana_query.as_str()],
+            flags,
+        ))
     }
 
     fn query_dict<D: std::cmp::Ord>(

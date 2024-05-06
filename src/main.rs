@@ -83,10 +83,8 @@ fn main() -> Result<()> {
     if opt.args.is_empty() {
         loop {
             let empty_str = &mut String::new();
-            let queries: Vec<&str> = read_input(empty_str)?;
-            for query in queries {
-                println!("{}", dict.query(query));
-            }
+            let query: String = read_input(empty_str)?.join(" ");
+            println!("{}", dict.query(&query));
         }
     } else {
         for arg in opt.args {
