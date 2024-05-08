@@ -72,20 +72,12 @@ impl<'a> QueriableDict<'a> {
         converted_num > normal_num
     }
 
-    fn extract_flags(&self, query: &str) -> (String, Vec<String>) {
-        let pattern = Regex::new(r"#(kanji|word|name|radical)").unwrap();
-        let flags: Vec<String> = pattern
-            .find_iter(query)
-            .map(|f| f.as_str().to_string())
-            .collect();
-        let cleaned_string: String = pattern.replace_all(query, "").trim().to_string();
-        (cleaned_string, flags)
+    pub fn query(&self, raw_query: &str) -> String {
+        let (query, flags) = extract_flags(&raw_query.to_lowercase());
+        self.query_with_flags(&query, flags)
     }
 
-    pub fn query(&self, raw_query: &str) -> String {
-        let (query, flags) = self.extract_flags(&raw_query.to_lowercase());
-        println!("{}", query);
-        println!("{:?}", flags);
+    pub fn query_with_flags(&self, query: &str, flags: Vec<String>) -> String {
         let converted_to_katakana = romaji_to_katakana(&query).ok();
         let converted_to_hiragana = converted_to_katakana
             .clone()
@@ -188,4 +180,14 @@ impl<'a> QueriableDict<'a> {
 
 fn clean_query(query: &str) -> &str {
     query.trim_matches(|c: char| c == '"' || c == '“' || c == '”' || c.is_whitespace())
+}
+
+fn extract_flags(query: &str) -> (String, Vec<String>) {
+    let pattern = Regex::new(r"#(kanji|word|name|radical)").unwrap();
+    let flags: Vec<String> = pattern
+        .find_iter(query)
+        .map(|f| f.as_str().to_string())
+        .collect();
+    let cleaned_string: String = pattern.replace_all(query, "").trim().to_string();
+    (cleaned_string, flags)
 }
