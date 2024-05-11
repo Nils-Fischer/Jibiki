@@ -1,17 +1,18 @@
 use crate::{
     adjective_conjugation_utils::generate_all_adjective_conjugations,
     basic_dictionaries::*,
-    build_dictionaries::{export_dicts_as_bin, Key},
-    dictionary_paths::{
-        ExportPath, KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
-    },
+    build_dictionaries::Key,
     query::Query,
     verb_conjugation_utils::{generate_all_verb_conjugations, ConjugatedWord},
 };
 use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, collections::HashMap, fmt};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    fmt::{self, Display},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
@@ -68,7 +69,7 @@ impl fmt::Display for Word {
 }
 
 impl Query for Word {
-    fn queries(&self) -> Vec<&str> {
+    fn searchable_terms(&self) -> Vec<&str> {
         self.meanings
             .iter()
             .flat_map(|meaning| meaning.split(", "))
@@ -78,12 +79,6 @@ impl Query for Word {
             .chain(self.conjugations.iter().map(|con| &*con.kana_form))
             .chain(self.conjugations.iter().map(|con| &*con.kanji_form))
             .collect()
-    }
-}
-
-impl ExportPath for Word {
-    fn export_path(&self) -> String {
-        WORDS_EXPORT_PATH.to_string()
     }
 }
 
@@ -142,7 +137,7 @@ pub struct Name {
     reading: String,
     tags: HashMap<String, Tag>,
     translations: Vec<String>,
-    pub id: u32,
+    id: u32,
 }
 
 impl Key<u32> for Name {
@@ -174,19 +169,13 @@ impl fmt::Display for Name {
 }
 
 impl Query for Name {
-    fn queries(&self) -> Vec<&str> {
+    fn searchable_terms(&self) -> Vec<&str> {
         self.translations
             .iter()
             .map(AsRef::as_ref)
             .chain(std::iter::once(self.name.as_str()))
             .chain(std::iter::once(self.reading.as_str()))
             .collect()
-    }
-}
-
-impl ExportPath for Name {
-    fn export_path(&self) -> String {
-        NAMES_EXPORT_PATH.to_string()
     }
 }
 
@@ -224,7 +213,7 @@ impl Ord for Name {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Kanji {
-    pub kanji: String,
+    kanji: String,
     on_yomi: Vec<String>,
     kun_yomi: Vec<String>,
     meanings: Vec<String>,
@@ -285,7 +274,7 @@ impl Key<u32> for Kanji {
 }
 
 impl Query for Kanji {
-    fn queries(&self) -> Vec<&str> {
+    fn searchable_terms(&self) -> Vec<&str> {
         self.meanings
             .iter()
             .map(AsRef::as_ref)
@@ -293,12 +282,6 @@ impl Query for Kanji {
             .chain(self.kun_yomi.iter().map(AsRef::as_ref))
             .chain(self.on_yomi.iter().map(AsRef::as_ref))
             .collect()
-    }
-}
-
-impl ExportPath for Kanji {
-    fn export_path(&self) -> String {
-        KANJIS_EXPORT_PATH.to_string()
     }
 }
 
@@ -385,7 +368,7 @@ impl fmt::Display for Radical {
 }
 
 impl Query for Radical {
-    fn queries(&self) -> Vec<&str> {
+    fn searchable_terms(&self) -> Vec<&str> {
         vec![self.radical.as_str()]
     }
 }
@@ -403,12 +386,6 @@ impl Radical {
             strokes: radk.strokes,
             kanji: radk.kanji.chars().collect(),
         }
-    }
-}
-
-impl ExportPath for Radical {
-    fn export_path(&self) -> String {
-        RADICALS_EXPORT_PATH.to_string()
     }
 }
 
@@ -432,31 +409,51 @@ impl Ord for Radical {
     }
 }
 
-pub enum CompositeDicts {
-    Words(Vec<Word>),
-    Names(Vec<Name>),
-    Kanjis(Vec<Kanji>),
-    Radicals(Vec<Radical>),
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DictionaryEntry {
+    Word(Word),
+    Name(Name),
+    Kanji(Kanji),
+    Radical(Radical),
 }
 
-impl CompositeDicts {
-    pub fn export_as_bin(&self) -> Result<()> {
+impl Query for DictionaryEntry {
+    fn searchable_terms(&self) -> Vec<&str> {
         match self {
-            CompositeDicts::Kanjis(kanjis) => export_dicts_as_bin(kanjis),
-            CompositeDicts::Words(words) => export_dicts_as_bin(words),
-            CompositeDicts::Names(names) => export_dicts_as_bin(names),
-            CompositeDicts::Radicals(radicals) => export_dicts_as_bin(radicals),
+            DictionaryEntry::Kanji(entry) => entry.searchable_terms(),
+            DictionaryEntry::Word(entry) => entry.searchable_terms(),
+            DictionaryEntry::Name(entry) => entry.searchable_terms(),
+            DictionaryEntry::Radical(entry) => entry.searchable_terms(),
         }
     }
+}
 
+impl Display for DictionaryEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DictionaryEntry::Kanji(entry) => entry.fmt(f),
+            DictionaryEntry::Word(entry) => entry.fmt(f),
+            DictionaryEntry::Name(entry) => entry.fmt(f),
+            DictionaryEntry::Radical(entry) => entry.fmt(f),
+        }
+    }
+}
+
+impl DictionaryEntry {
     pub fn name(&self) -> &str {
         match self {
-            CompositeDicts::Kanjis(_) => "Kanjis",
-            CompositeDicts::Words(_) => "Words",
-            CompositeDicts::Names(_) => "Names",
-            CompositeDicts::Radicals(_) => "Radicals",
+            DictionaryEntry::Kanji(_) => "Kanji",
+            DictionaryEntry::Word(_) => "Word",
+            DictionaryEntry::Name(_) => "Name",
+            DictionaryEntry::Radical(_) => "Radical",
         }
     }
+}
+
+pub fn export_vec_as_bin<D: Serialize>(vec: &Vec<D>, path: &str) -> Result<()> {
+    let encoded: Vec<u8> = bincode::serialize(&vec)?;
+    std::fs::write(path, encoded)?;
+    Ok(())
 }
 
 fn bold(str: &str) -> String {

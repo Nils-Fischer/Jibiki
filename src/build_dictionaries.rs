@@ -1,6 +1,6 @@
 use crate::{
     basic_dictionaries::*,
-    composite_dictionaries::{CompositeDicts, Kanji, Name, Radical, Word},
+    composite_dictionaries::{self, DictionaryEntry, Kanji, Name, Radical, Word},
     dictionary_paths::*,
 };
 use anyhow::Result;
@@ -101,7 +101,7 @@ pub fn build_composite_dicts() -> Result<()> {
     let innocent_vocab: Vec<Innocent> = load_dicts(innocent_vocab_dict_paths(), None)?;
     let krad: Vec<Krad> = load_dicts(krad_dict_paths(), None)?;
     let radk: Vec<Radk> = load_dicts(radk_dict_paths(), None)?;
-    let composite_dicts: Vec<CompositeDicts> = assemble_composite_dicts(
+    let composite_dicts: Vec<DictionaryEntry> = assemble_composite_dicts(
         jmdicts,
         jmnedicts,
         kanjium,
@@ -111,18 +111,16 @@ pub fn build_composite_dicts() -> Result<()> {
         krad,
         radk,
     );
-    for dicts in composite_dicts.iter() {
-        match dicts.export_as_bin() {
-            Ok(_) => println!("Succesfully exported {}!", dicts.name()),
-            Err(e) => panic!("Failed to export {}, reason: {}", dicts.name(), e),
-        }
+    match export_vec_as_bin(&composite_dicts, DICTIONARY_ENTRIES) {
+        Ok(_) => println!("Succesfully exported dictionary"),
+        Err(e) => panic!("Failed to export dictionary, reason: {}", e),
     }
     Ok(())
 }
 
-pub fn export_dicts_as_bin<D: Serialize + ExportPath>(dicts: &Vec<D>) -> Result<()> {
+pub fn export_vec_as_bin<D: Serialize>(dicts: &Vec<D>, export_path: &str) -> Result<()> {
     let encoded: Vec<u8> = bincode::serialize(&dicts)?;
-    std::fs::write(dicts[0].export_path(), encoded)?;
+    std::fs::write(export_path, encoded)?;
     Ok(())
 }
 
@@ -135,7 +133,7 @@ fn assemble_composite_dicts(
     innocent_vocab: Vec<Innocent>,
     krad: Vec<Krad>,
     radk: Vec<Radk>,
-) -> Vec<CompositeDicts> {
+) -> Vec<DictionaryEntry> {
     let innocent_vocab_map: HashMap<String, Innocent> = hashmap_from_dicts(innocent_vocab);
     let innocent_kanji_map: HashMap<String, Innocent> = hashmap_from_dicts(innocent_kanji);
     let krad_map: HashMap<String, Krad> = hashmap_from_dicts(krad);
@@ -144,12 +142,13 @@ fn assemble_composite_dicts(
     let word_dicts: Vec<Word> = assemble_word_dicts(jmdicts, &innocent_vocab_map, &kanjium_map);
     let name_dicts: Vec<Name> = assemble_name_dicts(jmnedicts);
     let radical_dicts: Vec<Radical> = assemble_radical_dicts(radk);
-    vec![
-        CompositeDicts::Kanjis(kanji_dicts),
-        CompositeDicts::Words(word_dicts),
-        CompositeDicts::Names(name_dicts),
-        CompositeDicts::Radicals(radical_dicts),
-    ]
+    kanji_dicts
+        .into_iter()
+        .map(DictionaryEntry::Kanji)
+        .chain(word_dicts.into_iter().map(DictionaryEntry::Word))
+        .chain(name_dicts.into_iter().map(DictionaryEntry::Name))
+        .chain(radical_dicts.into_iter().map(DictionaryEntry::Radical))
+        .collect()
 }
 
 fn assemble_word_dicts(

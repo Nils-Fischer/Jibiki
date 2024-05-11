@@ -4,9 +4,7 @@ use anyhow::Result;
 use basic_dictionaries::*;
 use build_dictionaries::{build_composite_dicts, load_dicts};
 use composite_dictionaries::*;
-use dictionary_paths::{
-    KANJIS_EXPORT_PATH, NAMES_EXPORT_PATH, RADICALS_EXPORT_PATH, WORDS_EXPORT_PATH,
-};
+use dictionary_paths::DICTIONARY_ENTRIES;
 use itertools::Itertools;
 use query::*;
 use std::{
@@ -22,6 +20,7 @@ mod composite_dictionaries;
 mod dictionary_paths;
 mod kana_utils;
 mod load_dictionaries;
+mod parse_example_sentences;
 mod query;
 mod verb_conjugation_utils;
 
@@ -73,23 +72,26 @@ fn main() -> Result<()> {
         .sorted()
         .collect();
 
-    let words: Vec<Word> = load_vec_from_bin(WORDS_EXPORT_PATH)?;
-    let kanjis: Vec<Kanji> = load_vec_from_bin(KANJIS_EXPORT_PATH)?;
-    let names: Vec<Name> = load_vec_from_bin(NAMES_EXPORT_PATH)?;
-    let radicals: Vec<Radical> = load_vec_from_bin(RADICALS_EXPORT_PATH)?;
+    // combined dict
+    let entries: Vec<DictionaryEntry> = load_vec_from_bin(DICTIONARY_ENTRIES)?;
 
-    let dict = QueriableDict::new(&words, &kanjis, &names, &radicals);
+    // longest word is a name 42 characters long
+    let dict: Dictionary = Dictionary::create(&entries);
 
     if opt.args.is_empty() {
         loop {
             let empty_str = &mut String::new();
             let query: String = read_input(empty_str)?.join(" ");
-            println!("{}", dict.query(&query));
+            for result in dict.query(&query) {
+                println!("{}", result)
+            }
         }
     } else {
         for arg in opt.args {
             let query = arg.as_str();
-            println!("{}", dict.query(query));
+            for result in dict.query(query) {
+                println!("{}", result)
+            }
         }
     }
     Ok(())
