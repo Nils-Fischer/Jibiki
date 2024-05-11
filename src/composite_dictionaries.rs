@@ -450,12 +450,6 @@ impl DictionaryEntry {
     }
 }
 
-pub fn export_vec_as_bin<D: Serialize>(vec: &Vec<D>, path: &str) -> Result<()> {
-    let encoded: Vec<u8> = bincode::serialize(&vec)?;
-    std::fs::write(path, encoded)?;
-    Ok(())
-}
-
 fn bold(str: &str) -> String {
     format!("\x1b[1m{}\x1b[0m", str)
 }

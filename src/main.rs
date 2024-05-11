@@ -6,6 +6,7 @@ use build_dictionaries::{build_composite_dicts, load_dicts};
 use composite_dictionaries::*;
 use dictionary_paths::DICTIONARY_ENTRIES;
 use itertools::Itertools;
+use parse_example_sentences::extract_all_words;
 use query::*;
 use std::{
     collections::HashSet,
@@ -77,6 +78,10 @@ fn main() -> Result<()> {
 
     // longest word is a name 42 characters long
     let dict: Dictionary = Dictionary::create(&entries);
+
+    let sentence = "私は天才ですよ";
+    let results = extract_all_words(&dict, sentence);
+    println!("{:#?}", results);
 
     if opt.args.is_empty() {
         loop {

@@ -2,6 +2,7 @@
 
 ## TO-DO
 
+- Collapse distinct dictionary entries with different readings into one item
 - Fix binary size
 - Example Sentences
 - Audio
