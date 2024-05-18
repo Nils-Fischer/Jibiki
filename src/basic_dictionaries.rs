@@ -277,28 +277,3 @@ impl FromParsed<ParsePitches> for Pitches {
         }
     }
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Sentence {
-    pub id: u32,
-    pub sentence: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ParseSentence {
-    pub id: u32,
-    pub _language: String,
-    pub sentence: String,
-}
-
-impl Sentence {
-    pub fn new(id: u32, sentence: String) -> Self {
-        Sentence { id, sentence }
-    }
-}
-
-impl FromParsed<ParseSentence> for Sentence {
-    fn from_parsed(parsed: ParseSentence, _tags: Option<&HashMap<String, Tag>>) -> Self {
-        Sentence::new(parsed.id, parsed.sentence)
-    }
-}

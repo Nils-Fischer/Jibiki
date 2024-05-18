@@ -5,7 +5,6 @@ use crate::{
     query::Query,
     verb_conjugation_utils::{generate_all_verb_conjugations, ConjugatedWord},
 };
-use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -16,8 +15,8 @@ use std::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
-    vocabulary: String,
-    reading: String,
+    pub vocabulary: String,
+    pub reading: String,
     meanings: Vec<String>,
     tags: HashMap<String, Tag>,
     id: u32,
@@ -133,8 +132,8 @@ impl Ord for Word {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Name {
-    name: String,
-    reading: String,
+    pub name: String,
+    pub reading: String,
     tags: HashMap<String, Tag>,
     translations: Vec<String>,
     id: u32,
@@ -446,6 +445,24 @@ impl DictionaryEntry {
             DictionaryEntry::Word(_) => "Word",
             DictionaryEntry::Name(_) => "Name",
             DictionaryEntry::Radical(_) => "Radical",
+        }
+    }
+
+    pub fn id(&self) -> Option<u32> {
+        match self {
+            DictionaryEntry::Kanji(entry) => Some(entry.id),
+            DictionaryEntry::Word(entry) => Some(entry.id),
+            DictionaryEntry::Name(entry) => Some(entry.id),
+            DictionaryEntry::Radical(_) => None,
+        }
+    }
+
+    pub fn frequency(&self) -> Option<u32> {
+        match self {
+            DictionaryEntry::Kanji(entry) => entry.frequency,
+            DictionaryEntry::Word(entry) => entry.frequency,
+            DictionaryEntry::Name(_) => None,
+            DictionaryEntry::Radical(_) => None,
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     basic_dictionaries::*,
-    composite_dictionaries::{self, DictionaryEntry, Kanji, Name, Radical, Word},
+    composite_dictionaries::{DictionaryEntry, Kanji, Name, Radical, Word},
     dictionary_paths::*,
 };
 use anyhow::Result;
@@ -158,7 +158,7 @@ fn assemble_word_dicts(
 ) -> Vec<Word> {
     jmdicts
         .into_iter()
-        .group_by(|word| word.key())
+        .chunk_by(|word| word.key())
         .into_iter()
         .map(|(_, group)| {
             let mut words = group.into_iter().peekable();

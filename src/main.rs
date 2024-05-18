@@ -1,17 +1,12 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use basic_dictionaries::*;
 use build_dictionaries::{build_composite_dicts, load_dicts};
 use composite_dictionaries::*;
 use dictionary_paths::DICTIONARY_ENTRIES;
-use itertools::Itertools;
-use parse_example_sentences::extract_all_words;
+use parse_example_sentences::parse_example_sentences_from_tsv;
 use query::*;
-use std::{
-    collections::HashSet,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 use structopt::StructOpt;
 
 mod adjective_conjugation_utils;
@@ -23,6 +18,7 @@ mod kana_utils;
 mod load_dictionaries;
 mod parse_example_sentences;
 mod query;
+mod sentence;
 mod verb_conjugation_utils;
 
 #[derive(StructOpt)]
@@ -55,33 +51,13 @@ fn main() -> Result<()> {
             Err(_) => println!("Failed to rebuild all binaries!\n"),
         }
     }
-    let sentences: Vec<Sentence> = load_dicts::<ParseSentence, Sentence>(
-        vec![String::from("resources/jpn_sentences.tsv")],
-        None,
-    )?;
-    let all_sentences = sentences
-        .into_iter()
-        .map(|sentence| sentence.sentence)
-        .collect::<Vec<String>>();
-    let all_chars: Vec<char> = all_sentences
-        .into_iter()
-        .fold(HashSet::new(), |mut set, sentence| {
-            set.extend(sentence.chars());
-            set
-        })
-        .into_iter()
-        .sorted()
-        .collect();
-
     // combined dict
     let entries: Vec<DictionaryEntry> = load_vec_from_bin(DICTIONARY_ENTRIES)?;
 
     // longest word is a name 42 characters long
     let dict: Dictionary = Dictionary::create(&entries);
-
-    let sentence = "私は天才ですよ";
-    let results = extract_all_words(&dict, sentence);
-    println!("{:#?}", results);
+    let sentences = parse_example_sentences_from_tsv("resources/sample_sentences.tsv", &dict)?;
+    println!("{:#?}", sentences);
 
     if opt.args.is_empty() {
         loop {
