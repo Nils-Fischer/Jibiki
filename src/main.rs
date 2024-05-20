@@ -1,7 +1,7 @@
 #![feature(hash_extract_if)]
 use crate::load_dictionaries::load_vec_from_bin;
 use anyhow::Result;
-use build_dictionaries::{build_composite_dicts, load_dicts};
+use build_dictionaries::build_composite_dicts;
 use composite_dictionaries::*;
 use dictionary_paths::DICTIONARY_ENTRIES;
 use parse_example_sentences::parse_example_sentences_from_tsv;
@@ -57,7 +57,15 @@ fn main() -> Result<()> {
     // longest word is a name 42 characters long
     let dict: Dictionary = Dictionary::create(&entries);
     let sentences = parse_example_sentences_from_tsv("resources/sample_sentences.tsv", &dict)?;
-    println!("{:#?}", sentences);
+    let defects: Vec<&str> = sentences
+        .iter()
+        .filter(|sentence| sentence.decomposition.is_none())
+        .map(|sentence| sentence.raw.as_ref())
+        .collect();
+    println!("{}", defects.len());
+    for defect in defects {
+        println!("{:#?}", defect);
+    }
 
     if opt.args.is_empty() {
         loop {

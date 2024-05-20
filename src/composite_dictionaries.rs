@@ -465,6 +465,15 @@ impl DictionaryEntry {
             DictionaryEntry::Radical(_) => None,
         }
     }
+
+    pub fn primary_word(&self) -> &str {
+        match self {
+            DictionaryEntry::Kanji(entry) => &entry.kanji,
+            DictionaryEntry::Word(entry) => &entry.vocabulary,
+            DictionaryEntry::Name(entry) => &entry.name,
+            DictionaryEntry::Radical(entry) => &entry.radical,
+        }
+    }
 }
 
 fn bold(str: &str) -> String {

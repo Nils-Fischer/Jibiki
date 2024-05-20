@@ -4,8 +4,8 @@ use crate::DictionaryEntry;
 
 #[derive(Debug)]
 pub struct Sentence<'a> {
-    raw: String,
-    decomposition: Option<Vec<ParsedWord<'a>>>,
+    pub raw: String,
+    pub decomposition: Option<Vec<ParsedWord<'a>>>,
     id: u32,
 }
 
@@ -21,7 +21,7 @@ impl<'a> Sentence<'a> {
 
 #[derive(Debug, Clone)]
 pub struct ParsedWord<'a> {
-    word: String,
+    pub word: String,
     interpretations: Vec<&'a DictionaryEntry>,
 }
 
